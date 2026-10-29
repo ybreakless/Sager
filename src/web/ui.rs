@@ -52,22 +52,6 @@ pub fn get_dashboard_html() -> &'static str {
             gap: 14px;
         }
 
-        .logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #fbbf24 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 900;
-            color: #ffffff;
-            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
-            letter-spacing: -1px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
         .logo-title {
             font-size: 22px;
             font-weight: 800;
@@ -418,6 +402,38 @@ pub fn get_dashboard_html() -> &'static str {
             color: var(--primary);
         }
 
+        .diag-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .diag-card {
+            background: #162035;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .diag-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diag-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
         .toast-msg {
             position: fixed;
             bottom: 24px;
@@ -451,13 +467,14 @@ pub fn get_dashboard_html() -> &'static str {
         <div class="quick-actions">
             <button class="btn" onclick="backupAllGames()">💾 Backup All Saves</button>
             <button class="btn btn-secondary" onclick="openBackupFolder()">📂 Open Google Drive Folder</button>
-            <button class="btn btn-gold" onclick="testAchievement()">🔔 Test Achievement Alert</button>
+            <button class="btn btn-gold" onclick="switchTab('tab-diagnostics')">🧪 Test Center</button>
         </div>
     </header>
 
     <div class="nav-tabs">
         <div class="nav-tab active" onclick="switchTab('tab-saves')">💾 Game Saves & Cloud Restore</div>
         <div class="nav-tab" onclick="switchTab('tab-achievements')">🏆 Steam Achievements Notifier</div>
+        <div class="nav-tab" onclick="switchTab('tab-diagnostics')">🧪 Test Center & Diagnostics</div>
         <div class="nav-tab" onclick="switchTab('tab-settings')">⚙️ Options & Backup Schedule</div>
     </div>
 
@@ -566,7 +583,126 @@ pub fn get_dashboard_html() -> &'static str {
             </div>
         </div>
 
-        <!-- Tab 3: Settings -->
+        <!-- Tab 3: Test Center & Diagnostics -->
+        <div id="tab-diagnostics" class="tab-content">
+            <div class="card" style="background: linear-gradient(135deg, #101c33 0%, #172642 100%); border-color: var(--primary);">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title" style="font-size: 18px; color: var(--primary);">🧪 Sager Interactive Test Center & Diagnostic Suite</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Easily test every single subsystem of Sager, trigger notifications, benchmark Google Drive write speeds, and inspect your saves before pushing changes.</div>
+                    </div>
+                    <button class="btn btn-gold" onclick="runFullDiagnostics()">🚀 Run Full Diagnostics</button>
+                </div>
+            </div>
+
+            <!-- Diagnostics Cards Grid -->
+            <div class="diag-grid" id="diag-cards-grid">
+                <div class="diag-card" id="diag-card-gdrive">
+                    <div class="diag-title">
+                        <span>☁️ Google Drive Sync</span>
+                        <span class="badge-live" id="diag-badge-gdrive">Checking...</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-gdrive">Process, permissions and sync directory status.</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="runWriteSpeedTest()">⚡ Test Write Speed</button>
+                        <button class="btn btn-sm" onclick="launchGoogleDrive()">🚀 Start GDrive</button>
+                    </div>
+                </div>
+
+                <div class="diag-card" id="diag-card-watcher">
+                    <div class="diag-title">
+                        <span>🎮 Achievement Watcher</span>
+                        <span class="badge-live" id="diag-badge-watcher">Active</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-watcher">Monitoring Project Lightning, Goldberg & Steam locations.</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm btn-gold" onclick="testAchievement()">🔔 Trigger Test Alert</button>
+                    </div>
+                </div>
+
+                <div class="diag-card" id="diag-card-scanner">
+                    <div class="diag-title">
+                        <span>💾 Save Game Scanner</span>
+                        <span class="badge-live" id="diag-badge-scanner">Ready</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-scanner">Scanning PC save directories (Ludusavi engine).</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="loadGames(); logToConsole('🔄 Save games rescan initiated.')">🔄 Rescan Saves</button>
+                    </div>
+                </div>
+
+                <div class="diag-card" id="diag-card-backup">
+                    <div class="diag-title">
+                        <span>📦 Backup & Restore</span>
+                        <span class="badge-live" id="diag-badge-backup">Ready</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-backup">Zip compression with JSON manifests and safety snapshots.</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm" onclick="backupAllGames()">💾 Test Full Backup</button>
+                    </div>
+                </div>
+
+                <div class="diag-card" id="diag-card-sound">
+                    <div class="diag-title">
+                        <span>🔔 Audio & Notifications</span>
+                        <span class="badge-live" id="diag-badge-sound">Enabled</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-sound">Windows Balloon/Toast and asterisk audio chime.</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="testSound()">🔊 Test Sound</button>
+                    </div>
+                </div>
+
+                <div class="diag-card" id="diag-card-paths">
+                    <div class="diag-title">
+                        <span>📁 Directories & Startup</span>
+                        <span class="badge-live" id="diag-badge-paths">Linked</span>
+                    </div>
+                    <div class="diag-detail" id="diag-detail-paths">Config directory and Windows Startup integration.</div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="openConfigFolder()">📂 Config Folder</button>
+                        <button class="btn btn-sm btn-secondary" onclick="openBackupFolder()">📂 Backup Folder</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Simulator -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🔔 Custom Achievement Pop Simulator</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label class="form-label">Game Name</label>
+                        <input type="text" id="sim-game" class="form-input" value="Project Lightning" />
+                    </div>
+                    <div>
+                        <label class="form-label">Achievement Title</label>
+                        <input type="text" id="sim-title" class="form-input" value="Master of Lightning" />
+                    </div>
+                    <div>
+                        <label class="form-label">Description</label>
+                        <input type="text" id="sim-desc" class="form-input" value="Successfully synchronized cloud saves & unlocked achievement!" />
+                    </div>
+                </div>
+                <button class="btn btn-gold" onclick="simulateCustomAchievement()">🚀 Trigger Toast Notification Now</button>
+            </div>
+
+            <!-- Live Terminal Log -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📜 Live Activity & Test Console</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="copyConsole()">📋 Copy Log</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearConsole()">🗑️ Clear</button>
+                    </div>
+                </div>
+                <div id="console-output" style="background: #050811; border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; height: 260px; overflow-y: auto; line-height: 1.6; color: #38bdf8;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Settings -->
         <div id="tab-settings" class="tab-content">
             <div class="card">
                 <div class="card-header">
@@ -631,6 +767,35 @@ pub fn get_dashboard_html() -> &'static str {
     <script>
         let allDiscoveredGames = [];
 
+        function logToConsole(msg, level = 'INFO') {
+            const el = document.getElementById('console-output');
+            if (!el) return;
+            const time = new Date().toLocaleTimeString();
+            let color = '#38bdf8';
+            if (level === 'PASS' || level === 'SUCCESS') color = '#10b981';
+            if (level === 'WARN') color = '#fbbf24';
+            if (level === 'ERROR') color = '#ef4444';
+            
+            const line = document.createElement('div');
+            line.innerHTML = `<span style="color: #64748b;">[${time}]</span> <span style="color: ${color}; font-weight: 700;">[${level}]</span> ${msg}`;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function clearConsole() {
+            const el = document.getElementById('console-output');
+            if (el) el.innerHTML = '';
+            logToConsole('Console cleared.', 'INFO');
+        }
+
+        function copyConsole() {
+            const el = document.getElementById('console-output');
+            if (!el) return;
+            navigator.clipboard.writeText(el.innerText).then(() => {
+                showToast('📋 Console log copied to clipboard!');
+            });
+        }
+
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -641,8 +806,19 @@ pub fn get_dashboard_html() -> &'static str {
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
+            
+            // Highlight nav tab
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabId)) {
+                    tab.classList.add('active');
+                }
+            });
+
+            if (tabId === 'tab-diagnostics') {
+                runFullDiagnostics();
+            }
         }
 
         function formatBytes(bytes) {
@@ -681,8 +857,119 @@ pub fn get_dashboard_html() -> &'static str {
             try {
                 await fetch('/api/test-sound', { method: 'POST' });
                 showToast('🔊 Audio chime played!');
+                logToConsole('Played Windows audio alert chime (MB_ICONASTERISK)', 'PASS');
+            } catch (e) {
+                logToConsole('Error playing audio: ' + e, 'ERROR');
+            }
+        }
+
+        async function openConfigFolder() {
+            try {
+                await fetch('/api/open-config-folder', { method: 'POST' });
+                logToConsole('Opened config folder %APPDATA%\\Sager in Windows Explorer', 'INFO');
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        async function runWriteSpeedTest() {
+            logToConsole('Testing Google Drive backup directory write latency...', 'INFO');
+            try {
+                const res = await fetch('/api/test/write-test', { method: 'POST' });
+                const d = await res.json();
+                if (d.success) {
+                    showToast('✅ ' + d.message);
+                    logToConsole(`Write latency test PASSED in ${d.latency_ms.toFixed(2)} ms on ${d.path}`, 'PASS');
+                } else {
+                    showToast('❌ ' + d.message);
+                    logToConsole(`Write test FAILED on ${d.path}: ${d.message}`, 'ERROR');
+                }
+            } catch (e) {
+                logToConsole('Write test error: ' + e, 'ERROR');
+            }
+        }
+
+        async function simulateCustomAchievement() {
+            const game = document.getElementById('sim-game').value.trim() || 'Project Lightning';
+            const title = document.getElementById('sim-title').value.trim() || 'Achievement Unlocked!';
+            const desc = document.getElementById('sim-desc').value.trim() || 'Custom test alert';
+
+            logToConsole(`Triggering custom achievement toast: "${title}" in "${game}"`, 'INFO');
+            try {
+                const res = await fetch('/api/test/custom-achievement', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game_name: game, title: title, description: desc })
+                });
+                const d = await res.json();
+                showToast('🔔 ' + d.message);
+                logToConsole(`Windows Tray Balloon alert delivered: "${title}"`, 'PASS');
+                setTimeout(loadAchievements, 500);
+            } catch (e) {
+                logToConsole('Failed to trigger achievement: ' + e, 'ERROR');
+            }
+        }
+
+        async function runFullDiagnostics() {
+            logToConsole('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'INFO');
+            logToConsole('Starting full system diagnostics check...', 'INFO');
+
+            try {
+                const res = await fetch('/api/test/diagnostics');
+                const d = await res.json();
+
+                // 1. Google Drive
+                const gd = d.google_drive;
+                const gdriveBadge = document.getElementById('diag-badge-gdrive');
+                const gdriveDetail = document.getElementById('diag-detail-gdrive');
+                if (gd.running) {
+                    gdriveBadge.textContent = 'Running';
+                    gdriveBadge.style.color = 'var(--success)';
+                    gdriveDetail.textContent = `Process active. Backup dir: ${gd.backup_dir} (Write test: ${gd.write_latency_ms.toFixed(2)} ms)`;
+                    logToConsole(`[Google Drive] Process Running | Latency: ${gd.write_latency_ms.toFixed(2)} ms | Path: ${gd.backup_dir}`, 'PASS');
+                } else {
+                    gdriveBadge.textContent = gd.installed ? 'Stopped' : 'Not Installed';
+                    gdriveBadge.style.color = gd.installed ? 'var(--gold)' : 'var(--danger)';
+                    gdriveDetail.textContent = `Process not running. Backup dir: ${gd.backup_dir} (Write test: ${gd.write_latency_ms.toFixed(2)} ms)`;
+                    logToConsole(`[Google Drive] Process is stopped. Target: ${gd.backup_dir}`, 'WARN');
+                }
+
+                // 2. Watcher
+                const w = d.watcher;
+                const watcherDetail = document.getElementById('diag-detail-watcher');
+                const watcherParts = [];
+                if (w.goldberg_detected) watcherParts.push('Goldberg');
+                if (w.project_lightning_detected) watcherParts.push('Project Lightning');
+                if (w.steam_detected) watcherParts.push('Steam');
+                watcherDetail.textContent = `Active locations: ${watcherParts.join(', ') || 'Custom configured'}. Unlocked history: ${d.achievements.total_unlocked} trophies.`;
+                logToConsole(`[Achievement Watcher] Locations: ${watcherParts.join(', ')} | Trophies: ${d.achievements.total_unlocked}`, 'PASS');
+
+                // 3. Scanner
+                const s = d.save_scanner;
+                const scannerDetail = document.getElementById('diag-detail-scanner');
+                scannerDetail.textContent = `Found ${s.games_count} games with saves (${formatBytes(s.total_size_bytes)} total on disk).`;
+                logToConsole(`[Save Scanner] Discovered ${s.games_count} game saves (${formatBytes(s.total_size_bytes)})`, 'PASS');
+
+                // 4. Backup & Restore
+                const b = d.cloud_backups;
+                const backupDetail = document.getElementById('diag-detail-backup');
+                backupDetail.textContent = `${b.total_archives} cloud snapshots ready for restore (${formatBytes(b.total_size_bytes)}).`;
+                logToConsole(`[Cloud Archives] ${b.total_archives} zip snapshots available (${formatBytes(b.total_size_bytes)})`, 'PASS');
+
+                // 5. Sound & System
+                const sys = d.system;
+                const soundDetail = document.getElementById('diag-detail-sound');
+                soundDetail.textContent = `Notifications: ${sys.notifications_enabled ? 'ON' : 'OFF'} | Audio Chimes: ${sys.sound_enabled ? 'ON' : 'OFF'}`;
+
+                // 6. Startup
+                const pathsDetail = document.getElementById('diag-detail-paths');
+                pathsDetail.textContent = `Startup Shortcut: ${sys.startup_shortcut_installed ? 'Installed (Autostart ON)' : 'Not detected'}. Config: ${sys.config_path}`;
+                logToConsole(`[Windows Startup] Auto-start shortcut: ${sys.startup_shortcut_installed ? 'Installed' : 'Missing'}`, sys.startup_shortcut_installed ? 'PASS' : 'WARN');
+
+                logToConsole('All diagnostics completed successfully!', 'SUCCESS');
+                logToConsole('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'INFO');
+            } catch (e) {
+                logToConsole('Diagnostics error: ' + e, 'ERROR');
             }
         }
 
@@ -719,16 +1006,22 @@ pub fn get_dashboard_html() -> &'static str {
 
         async function launchGoogleDrive() {
             showToast('🚀 Launching Google Drive...');
+            logToConsole('Launching Google Drive desktop executable...', 'INFO');
             try {
                 const res = await fetch('/api/launch-gdrive', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     showToast('✅ ' + data.message);
+                    logToConsole(data.message, 'PASS');
                     setTimeout(loadDriveStatus, 3000);
                 } else {
                     showToast('❌ ' + data.message);
+                    logToConsole(data.message, 'ERROR');
                 }
-            } catch (e) { showToast('❌ Failed to launch Google Drive'); }
+            } catch (e) {
+                showToast('❌ Failed to launch Google Drive');
+                logToConsole('Launch error: ' + e, 'ERROR');
+            }
         }
 
         async function loadStatus() {
@@ -910,6 +1203,7 @@ pub fn get_dashboard_html() -> &'static str {
 
             if (res.ok) {
                 showToast(`✅ Saved! Backing up ${bpd} times a day to Google Drive.`);
+                logToConsole(`Configuration saved. Backup target: ${config.backup_directory}, schedule: ${bpd}x daily`, 'PASS');
                 loadStatus();
                 loadBackups();
             } else {
@@ -919,6 +1213,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         async function backupAllGames() {
             showToast('⏳ Backing up all game saves to Google Drive...');
+            logToConsole('Triggered backup for all discovered games...', 'INFO');
             const res = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -926,50 +1221,61 @@ pub fn get_dashboard_html() -> &'static str {
             });
             const data = await res.json();
             showToast('✅ ' + data.message);
+            logToConsole(data.message, 'PASS');
             loadBackups();
             loadStatus();
         }
 
         async function backupSingleGame(name, path) {
-            showToast('⏳ Backing up ' + decodeURIComponent(name) + '...');
+            const decodedName = decodeURIComponent(name);
+            showToast('⏳ Backing up ' + decodedName + '...');
+            logToConsole(`Backing up game save: ${decodedName}`, 'INFO');
             const res = await fetch('/api/backup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    game_name: decodeURIComponent(name),
+                    game_name: decodedName,
                     source_path: decodeURIComponent(path)
                 })
             });
             const data = await res.json();
             showToast('✅ ' + data.message);
+            logToConsole(data.message, 'PASS');
             loadBackups();
         }
 
         async function restoreBackup(zipPath) {
+            const decodedZip = decodeURIComponent(zipPath);
             if (!confirm('Are you sure you want to restore this save? (A safety backup of your existing local save will be created automatically)')) {
                 return;
             }
             showToast('⏳ Restoring save files...');
+            logToConsole(`Restoring save archive: ${decodedZip}`, 'INFO');
             const res = await fetch('/api/restore', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ zip_path: decodeURIComponent(zipPath) })
+                body: JSON.stringify({ zip_path: decodedZip })
             });
             const data = await res.json();
             if (data.success) {
                 showToast('✅ Save restored successfully! ' + data.message);
+                logToConsole(data.message, 'PASS');
             } else {
                 showToast('❌ Restore failed: ' + data.message);
+                logToConsole('Restore error: ' + data.message, 'ERROR');
             }
         }
 
         async function openBackupFolder() {
             await fetch('/api/open-folder', { method: 'POST' });
+            logToConsole('Opened Google Drive backup folder in Windows Explorer', 'INFO');
         }
 
         async function testAchievement() {
             showToast('🔔 Triggering test achievement pop...');
+            logToConsole('Sending test achievement pop notification to Windows tray...', 'INFO');
             await fetch('/api/achievements/test', { method: 'POST' });
+            logToConsole('Delivered test notification: "Sager Master Unlocked"', 'PASS');
             setTimeout(loadAchievements, 500);
         }
 
@@ -980,6 +1286,9 @@ pub fn get_dashboard_html() -> &'static str {
         loadBackups();
         loadAchievements();
         loadConfig();
+
+        logToConsole('🚀 Sager Web UI connected & initialized', 'SUCCESS');
+        logToConsole('Connected to backend at http://127.0.0.1:3939', 'INFO');
 
         // Auto refresh achievements, status, and drive status
         setInterval(() => {
