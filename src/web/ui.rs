@@ -436,8 +436,15 @@ pub fn get_dashboard_html() -> &'static str {
         <!-- Tab 1: Game Saves -->
         <div id="tab-saves" class="tab-content active">
             <div class="status-strip">
+                <div class="status-card" id="gdrive-status-card">
+                    <div class="status-label">Google Drive Status</div>
+                    <div class="status-value" id="status-gdrive">
+                        <span id="gdrive-badge" class="badge-live" style="display:none;">Checking...</span>
+                    </div>
+                    <div id="gdrive-action" style="margin-top: 6px;"></div>
+                </div>
                 <div class="status-card">
-                    <div class="status-label">Google Drive / Backup Target</div>
+                    <div class="status-label">Backup Target</div>
                     <div class="status-value" id="status-backup-dir" style="font-size: 13px;">Detecting...</div>
                 </div>
                 <div class="status-card">
@@ -541,6 +548,12 @@ pub fn get_dashboard_html() -> &'static str {
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Google Drive Executable Path (Optional)</label>
+                        <div class="form-hint">Custom path to GoogleDriveFS.exe. Leave blank for auto-detection.</div>
+                        <input type="text" id="cfg-gdrive-exe" class="form-input" placeholder="Auto-detect" />
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Auto-Backup Interval (Minutes)</label>
                         <input type="number" id="cfg-interval" class="form-input" min="5" max="1440" required />
                     </div>
@@ -586,6 +599,51 @@ pub fn get_dashboard_html() -> &'static str {
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function loadDriveStatus() {
+            try {
+                const res = await fetch('/api/drive-status');
+                const d = await res.json();
+                const badge = document.getElementById('gdrive-badge');
+                const action = document.getElementById('gdrive-action');
+                const card = document.getElementById('gdrive-status-card');
+                badge.style.display = 'inline-flex';
+
+                if (d.google_drive_running) {
+                    badge.textContent = 'Running';
+                    badge.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                    badge.style.color = 'var(--success)';
+                    card.style.borderColor = 'var(--success)';
+                    action.innerHTML = '';
+                } else if (d.google_drive_installed) {
+                    badge.textContent = 'Stopped';
+                    badge.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                    badge.style.color = 'var(--danger)';
+                    card.style.borderColor = 'var(--danger)';
+                    action.innerHTML = '<button class="btn btn-sm" onclick="launchGoogleDrive()">🚀 Launch Google Drive</button>';
+                } else {
+                    badge.textContent = 'Not Installed';
+                    badge.style.backgroundColor = 'rgba(148, 163, 184, 0.2)';
+                    badge.style.color = 'var(--text-muted)';
+                    card.style.borderColor = 'var(--border)';
+                    action.innerHTML = '<span style="font-size:11px;color:var(--text-muted);">Install Google Drive for Desktop</span>';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function launchGoogleDrive() {
+            showToast('🚀 Launching Google Drive...');
+            try {
+                const res = await fetch('/api/launch-gdrive', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ ' + data.message);
+                    setTimeout(loadDriveStatus, 3000);
+                } else {
+                    showToast('❌ ' + data.message);
+                }
+            } catch (e) { showToast('❌ Failed to launch Google Drive'); }
         }
 
         async function loadStatus() {
@@ -712,6 +770,7 @@ pub fn get_dashboard_html() -> &'static str {
                 document.getElementById('cfg-sound').checked = cfg.sound_enabled;
                 document.getElementById('cfg-notif').checked = cfg.notifications_enabled;
                 document.getElementById('cfg-auto-backup').checked = cfg.auto_backup_enabled;
+                document.getElementById('cfg-gdrive-exe').value = cfg.google_drive_exe || '';
             } catch (e) {
                 console.error(e);
             }
@@ -719,12 +778,14 @@ pub fn get_dashboard_html() -> &'static str {
 
         async function saveSettings(e) {
             e.preventDefault();
+            const gdriveExe = document.getElementById('cfg-gdrive-exe').value.trim();
             const config = {
                 backup_directory: document.getElementById('cfg-backup-dir').value,
                 auto_backup_interval_minutes: parseInt(document.getElementById('cfg-interval').value),
                 sound_enabled: document.getElementById('cfg-sound').checked,
                 notifications_enabled: document.getElementById('cfg-notif').checked,
-                auto_backup_enabled: document.getElementById('cfg-auto-backup').checked
+                auto_backup_enabled: document.getElementById('cfg-auto-backup').checked,
+                google_drive_exe: gdriveExe || null
             };
 
             const res = await fetch('/api/config', {
@@ -800,15 +861,17 @@ pub fn get_dashboard_html() -> &'static str {
 
         // Initialize dashboard
         loadStatus();
+        loadDriveStatus();
         loadGames();
         loadBackups();
         loadAchievements();
         loadConfig();
 
-        // Auto refresh achievements and status every 4 seconds
+        // Auto refresh achievements, status, and drive status
         setInterval(() => {
             loadAchievements();
             loadStatus();
+            loadDriveStatus();
         }, 4000);
     </script>
 </body>

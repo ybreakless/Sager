@@ -1,4 +1,5 @@
 use crate::achievements::AchievementNotification;
+use crate::config;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::ptr::{null, null_mut};
@@ -15,8 +16,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DispatchMessageW,
     GetCursorPos, GetMessageW, LoadIconW, PostQuitMessage, RegisterClassW,
     SetForegroundWindow, TrackPopupMenu, TranslateMessage, IDI_APPLICATION,
-    MB_ICONASTERISK, MF_SEPARATOR, MF_STRING, TPM_BOTTOMALIGN, TPM_RIGHTBUTTON, WM_APP,
-    WM_COMMAND, WM_DESTROY, WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSW, WS_OVERLAPPEDWINDOW,
+    MB_ICONASTERISK, MF_GRAYED, MF_SEPARATOR, MF_STRING, TPM_BOTTOMALIGN, TPM_RIGHTBUTTON,
+    WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSW,
+    WS_OVERLAPPEDWINDOW,
 };
 
 #[link(name = "user32")]
@@ -33,6 +35,8 @@ pub const ID_OPEN_BACKUP_FOLDER: usize = 1003;
 pub const ID_TEST_ACHIEVEMENT: usize = 1004;
 pub const ID_SETTINGS: usize = 1005;
 pub const ID_EXIT: usize = 1006;
+pub const ID_LAUNCH_GDRIVE: usize = 1007;
+pub const ID_GDRIVE_STATUS: usize = 1008;
 
 pub fn to_wide_chars(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
@@ -144,7 +148,10 @@ impl SystemTray {
             let add_res = Shell_NotifyIconW(NIM_ADD, &nid);
 
             if add_res == 0 {
-                return Err("Failed to add system tray icon (Explorer taskbar not ready or isolated session)".to_string());
+                return Err(
+                    "Failed to add system tray icon (Explorer taskbar not ready or isolated session)"
+                        .to_string(),
+                );
             }
 
             Ok(Self {
@@ -171,7 +178,7 @@ impl SystemTray {
 pub fn start_notification_listener(
     tray_handle: TrayHandle,
     rx: Receiver<AchievementNotification>,
-    config_provider: Arc<Mutex<crate::config::SagerConfig>>,
+    config_provider: Arc<Mutex<config::SagerConfig>>,
 ) {
     thread::spawn(move || {
         while let Ok(notif) = rx.recv() {
@@ -181,7 +188,7 @@ pub fn start_notification_listener(
             };
 
             if notifications_enabled {
-                let title = format!("🏆 Achievement Unlocked! ({})", notif.game_name);
+                let title = format!("Achievement Unlocked! ({})", notif.game_name);
                 let message = if notif.description.is_empty() {
                     notif.title
                 } else {
@@ -192,6 +199,83 @@ pub fn start_notification_listener(
             }
         }
     });
+}
+
+/// Build and show the context menu with live Google Drive status
+fn show_context_menu(hwnd: HWND) {
+    unsafe {
+        let mut pt = POINT { x: 0, y: 0 };
+        GetCursorPos(&mut pt);
+        let hmenu = CreatePopupMenu();
+
+        let cfg = config::load_config();
+        let drive_status = config::get_drive_status(&cfg);
+
+        // ── Title ──
+        let title_text = to_wide_chars("Sager v0.1.0");
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_TRAY_TITLE, title_text.as_ptr());
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
+        // ── Google Drive Status Section ──
+        let gdrive_label = if drive_status.google_drive_running {
+            to_wide_chars("Google Drive: Running")
+        } else if drive_status.google_drive_installed {
+            to_wide_chars("Google Drive: Stopped")
+        } else {
+            to_wide_chars("Google Drive: Not Installed")
+        };
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_GDRIVE_STATUS, gdrive_label.as_ptr());
+
+        if !drive_status.google_drive_running && drive_status.google_drive_installed {
+            let launch_text = to_wide_chars("Launch Google Drive");
+            AppendMenuW(hmenu, MF_STRING, ID_LAUNCH_GDRIVE, launch_text.as_ptr());
+        }
+
+        let dir_status = if drive_status.backup_dir_exists {
+            format!("Backup: {}", cfg.backup_directory.display())
+        } else {
+            format!("Backup: {} (missing)", cfg.backup_directory.display())
+        };
+        let dir_text = to_wide_chars(&dir_status);
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, dir_text.as_ptr());
+
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
+        // ── Actions ──
+        let dash_text = to_wide_chars("Open Dashboard");
+        AppendMenuW(hmenu, MF_STRING, ID_OPEN_DASHBOARD, dash_text.as_ptr());
+
+        let backup_text = to_wide_chars("Backup All Game Saves Now");
+        AppendMenuW(hmenu, MF_STRING, ID_BACKUP_ALL, backup_text.as_ptr());
+
+        let folder_text = to_wide_chars("Open Backup Folder");
+        AppendMenuW(hmenu, MF_STRING, ID_OPEN_BACKUP_FOLDER, folder_text.as_ptr());
+
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
+        let test_text = to_wide_chars("Test Achievement Alert");
+        AppendMenuW(hmenu, MF_STRING, ID_TEST_ACHIEVEMENT, test_text.as_ptr());
+
+        let settings_text = to_wide_chars("Settings (Dashboard)");
+        AppendMenuW(hmenu, MF_STRING, ID_SETTINGS, settings_text.as_ptr());
+
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
+        let exit_text = to_wide_chars("Exit Sager");
+        AppendMenuW(hmenu, MF_STRING, ID_EXIT, exit_text.as_ptr());
+
+        SetForegroundWindow(hwnd);
+        TrackPopupMenu(
+            hmenu,
+            TPM_RIGHTBUTTON | TPM_BOTTOMALIGN,
+            pt.x,
+            pt.y,
+            0,
+            hwnd,
+            null(),
+        );
+        DestroyMenu(hmenu);
+    }
 }
 
 pub unsafe extern "system" fn tray_window_proc(
@@ -205,50 +289,17 @@ pub unsafe extern "system" fn tray_window_proc(
             let event = lparam as u32;
             match event {
                 WM_RBUTTONUP => {
-                    let mut pt = POINT { x: 0, y: 0 };
-                    GetCursorPos(&mut pt);
-                    let hmenu = CreatePopupMenu();
-
-                    let title_text = to_wide_chars("🎮 Sager v0.1.0");
-                    AppendMenuW(hmenu, MF_STRING, ID_TRAY_TITLE, title_text.as_ptr());
-                    AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
-
-                    let dash_text = to_wide_chars("🌐 Open Dashboard");
-                    AppendMenuW(hmenu, MF_STRING, ID_OPEN_DASHBOARD, dash_text.as_ptr());
-
-                    let backup_text = to_wide_chars("💾 Backup All Game Saves Now");
-                    AppendMenuW(hmenu, MF_STRING, ID_BACKUP_ALL, backup_text.as_ptr());
-
-                    let folder_text = to_wide_chars("📂 Open Backup Folder (Google Drive)");
-                    AppendMenuW(hmenu, MF_STRING, ID_OPEN_BACKUP_FOLDER, folder_text.as_ptr());
-
-                    AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
-
-                    let test_text = to_wide_chars("🔔 Test Achievement Alert");
-                    AppendMenuW(hmenu, MF_STRING, ID_TEST_ACHIEVEMENT, test_text.as_ptr());
-
-                    let settings_text = to_wide_chars("⚙️ Settings");
-                    AppendMenuW(hmenu, MF_STRING, ID_SETTINGS, settings_text.as_ptr());
-
-                    AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
-
-                    let exit_text = to_wide_chars("❌ Exit Sager");
-                    AppendMenuW(hmenu, MF_STRING, ID_EXIT, exit_text.as_ptr());
-
-                    SetForegroundWindow(hwnd);
-                    TrackPopupMenu(
-                        hmenu,
-                        TPM_RIGHTBUTTON | TPM_BOTTOMALIGN,
-                        pt.x,
-                        pt.y,
-                        0,
-                        hwnd,
-                        null(),
-                    );
-                    DestroyMenu(hmenu);
+                    show_context_menu(hwnd);
                 }
-                WM_LBUTTONDBLCLK | WM_LBUTTONUP => {
-                    let _ = open::that("http://127.0.0.1:3939");
+                WM_LBUTTONUP => {
+                    // Left-click: open the backup folder directly
+                    let cfg = config::load_config();
+                    if cfg.backup_directory.exists() {
+                        let _ = open::that(&cfg.backup_directory);
+                    } else {
+                        // Backup dir doesn't exist, open dashboard instead
+                        let _ = open::that("http://127.0.0.1:3939");
+                    }
                 }
                 _ => {}
             }
@@ -261,29 +312,55 @@ pub unsafe extern "system" fn tray_window_proc(
                     let _ = open::that("http://127.0.0.1:3939");
                 }
                 ID_BACKUP_ALL => {
-                    let config = crate::config::load_config();
-                    let res = crate::backup::SaveArchiver::backup_all(&config);
+                    let cfg = config::load_config();
+                    let res = crate::backup::SaveArchiver::backup_all(&cfg);
                     let success_count = res.iter().filter(|r| r.is_ok()).count();
                     let total = res.len();
 
                     let handle = TrayHandle(hwnd as isize);
                     handle.show_balloon_notification(
                         "Sager Backup Complete",
-                        &format!("Backed up {} of {} games to {}", success_count, total, config.backup_directory.display()),
-                        config.sound_enabled,
+                        &format!(
+                            "Backed up {} of {} games to {}",
+                            success_count,
+                            total,
+                            cfg.backup_directory.display()
+                        ),
+                        cfg.sound_enabled,
                     );
                 }
                 ID_OPEN_BACKUP_FOLDER => {
-                    let config = crate::config::load_config();
-                    let _ = open::that(&config.backup_directory);
+                    let cfg = config::load_config();
+                    let _ = open::that(&cfg.backup_directory);
                 }
                 ID_TEST_ACHIEVEMENT => {
                     let handle = TrayHandle(hwnd as isize);
                     handle.show_balloon_notification(
-                        "🏆 Achievement Unlocked! (Test)",
-                        "Sager Master: Connected Steam Achievements & Save Backup successfully!",
+                        "Achievement Unlocked! (Test)",
+                        "Sager Master: Achievement tracking & save backup working!",
                         true,
                     );
+                }
+                ID_LAUNCH_GDRIVE => {
+                    let cfg = config::load_config();
+                    match config::launch_google_drive(&cfg) {
+                        Ok(()) => {
+                            let handle = TrayHandle(hwnd as isize);
+                            handle.show_balloon_notification(
+                                "Google Drive Launched",
+                                "Google Drive for Desktop is starting up...",
+                                false,
+                            );
+                        }
+                        Err(e) => {
+                            let handle = TrayHandle(hwnd as isize);
+                            handle.show_balloon_notification(
+                                "Google Drive Error",
+                                &e,
+                                true,
+                            );
+                        }
+                    }
                 }
                 ID_EXIT => {
                     let handle = TrayHandle(hwnd as isize);
