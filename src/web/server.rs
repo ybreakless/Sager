@@ -1,0 +1,252 @@
+use crate::achievements::{load_achievements_history, Achievement, AchievementNotification};
+use crate::backup::{SaveArchiver, SaveRestore, SaveScanner};
+use crate::config::{save_config, SagerConfig};
+use crate::web::ui::get_dashboard_html;
+use serde_json::json;
+use std::path::PathBuf;
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use tiny_http::{Header, Method, Response, Server, StatusCode};
+
+pub struct WebServer;
+
+impl WebServer {
+    pub fn start(
+        config_provider: Arc<Mutex<SagerConfig>>,
+        notifier_tx: Sender<AchievementNotification>,
+    ) {
+        thread::spawn(move || {
+            let port = {
+                let cfg = config_provider.lock().unwrap();
+                cfg.web_port
+            };
+
+            let addr = format!("127.0.0.1:{}", port);
+            let server = match Server::http(&addr) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Failed to start Sager web server on {}: {}", addr, e);
+                    return;
+                }
+            };
+
+            println!("Sager Web Dashboard running on http://{}", addr);
+
+            for mut req in server.incoming_requests() {
+                let url = req.url().to_string();
+                let method = req.method().clone();
+
+                let json_header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let html_header = Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap();
+
+                if url == "/" && method == Method::Get {
+                    let html = get_dashboard_html();
+                    let resp = Response::from_string(html).with_header(html_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/status" && method == Method::Get {
+                    let config = config_provider.lock().unwrap().clone();
+                    let games = SaveScanner::scan_all(&config);
+                    let achievements = load_achievements_history();
+
+                    let status = json!({
+                        "version": "0.1.0",
+                        "backup_dir": config.backup_directory.to_string_lossy(),
+                        "games_count": games.len(),
+                        "achievements_count": achievements.len(),
+                        "auto_backup_enabled": config.auto_backup_enabled,
+                        "auto_backup_interval": config.auto_backup_interval_minutes,
+                        "sound_enabled": config.sound_enabled
+                    });
+
+                    let resp = Response::from_string(status.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/games" && method == Method::Get {
+                    let config = config_provider.lock().unwrap().clone();
+                    let games = SaveScanner::scan_all(&config);
+                    let resp = Response::from_string(serde_json::to_string(&games).unwrap_or_default())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/backups" && method == Method::Get {
+                    let config = config_provider.lock().unwrap().clone();
+                    let backups = SaveRestore::list_all_backups(&config);
+                    let resp = Response::from_string(serde_json::to_string(&backups).unwrap_or_default())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/backup" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+                    let config = config_provider.lock().unwrap().clone();
+
+                    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
+                    if parsed.get("all").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        let res = SaveArchiver::backup_all(&config);
+                        let success_count = res.iter().filter(|r| r.is_ok()).count();
+                        let total = res.len();
+
+                        let resp_body = json!({
+                            "success": true,
+                            "message": format!("Backed up {} of {} game saves to Google Drive / {}", success_count, total, config.backup_directory.display())
+                        });
+                        let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                        let _ = req.respond(resp);
+                    } else {
+                        let name = parsed.get("game_name").and_then(|v| v.as_str()).unwrap_or("Game");
+                        let path_str = parsed.get("source_path").and_then(|v| v.as_str()).unwrap_or("");
+                        let path = PathBuf::from(path_str);
+
+                        match SaveArchiver::backup_game(name, &path, &config) {
+                            Ok(info) => {
+                                let resp_body = json!({
+                                    "success": true,
+                                    "message": format!("Successfully backed up {} ({})", name, info.file_name),
+                                    "backup": info
+                                });
+                                let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                                let _ = req.respond(resp);
+                            }
+                            Err(e) => {
+                                let resp_body = json!({
+                                    "success": false,
+                                    "message": format!("Failed to backup {}: {}", name, e)
+                                });
+                                let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                                let _ = req.respond(resp);
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                if url == "/api/restore" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+                    let config = config_provider.lock().unwrap().clone();
+
+                    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
+                    let zip_str = parsed.get("zip_path").and_then(|v| v.as_str()).unwrap_or("");
+                    let zip_path = PathBuf::from(zip_str);
+
+                    match SaveRestore::restore_backup(&zip_path, None, &config) {
+                        Ok(res) => {
+                            let resp_body = json!({
+                                "success": true,
+                                "message": format!("Restored {} files to {}", res.restored_files, res.target_path.display()),
+                                "result": res
+                            });
+                            let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                            let _ = req.respond(resp);
+                        }
+                        Err(e) => {
+                            let resp_body = json!({
+                                "success": false,
+                                "message": e
+                            });
+                            let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                            let _ = req.respond(resp);
+                        }
+                    }
+                    continue;
+                }
+
+                if url == "/api/achievements" && method == Method::Get {
+                    let list = load_achievements_history();
+                    let resp = Response::from_string(serde_json::to_string(&list).unwrap_or_default())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/achievements/test" && method == Method::Post {
+                    let now = chrono::Utc::now().timestamp();
+                    let test_notif = AchievementNotification {
+                        game_name: "Steam / Project Lightning".to_string(),
+                        title: "Sager Master Unlocked".to_string(),
+                        description: "Achievement & Save Backup Companion successfully activated!".to_string(),
+                        unlock_time: now,
+                    };
+                    let _ = notifier_tx.send(test_notif);
+
+                    let test_ach = Achievement {
+                        id: format!("test_ach_{}", now),
+                        game_name: "Steam / Project Lightning".to_string(),
+                        app_id: Some("480".to_string()),
+                        title: "Sager Master Unlocked".to_string(),
+                        description: "Achievement & Save Backup Companion successfully activated!".to_string(),
+                        unlocked: true,
+                        unlock_time: Some(now),
+                        icon_path: None,
+                    };
+                    crate::achievements::record_unlocked_achievement(&test_ach);
+
+                    let resp_body = json!({ "success": true, "message": "Test achievement alert triggered!" });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/config" && method == Method::Get {
+                    let config = config_provider.lock().unwrap().clone();
+                    let resp = Response::from_string(serde_json::to_string(&config).unwrap_or_default())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/config" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+
+                    let mut config = config_provider.lock().unwrap();
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&body) {
+                        if let Some(dir) = val.get("backup_directory").and_then(|v| v.as_str()) {
+                            config.backup_directory = PathBuf::from(dir);
+                        }
+                        if let Some(interval) = val.get("auto_backup_interval_minutes").and_then(|v| v.as_u64()) {
+                            config.auto_backup_interval_minutes = interval;
+                        }
+                        if let Some(sound) = val.get("sound_enabled").and_then(|v| v.as_bool()) {
+                            config.sound_enabled = sound;
+                        }
+                        if let Some(notif) = val.get("notifications_enabled").and_then(|v| v.as_bool()) {
+                            config.notifications_enabled = notif;
+                        }
+                        if let Some(auto) = val.get("auto_backup_enabled").and_then(|v| v.as_bool()) {
+                            config.auto_backup_enabled = auto;
+                        }
+                        save_config(&config);
+                    }
+
+                    let resp_body = json!({ "success": true, "message": "Settings updated" });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/open-folder" && method == Method::Post {
+                    let config = config_provider.lock().unwrap().clone();
+                    let _ = open::that(&config.backup_directory);
+                    let resp_body = json!({ "success": true });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                let resp = Response::from_string("Not Found").with_status_code(StatusCode(404));
+                let _ = req.respond(resp);
+            }
+        });
+    }
+}
