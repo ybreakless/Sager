@@ -1,9 +1,13 @@
-# 🎮 Sager - Game Companion & Cloud Save Sync
-
-[![Rust](https://img.shields.io/badge/Language-Pure%20Rust-orange.svg)](https://www.rust-lang.org/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)](https://www.microsoft.com/windows)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-ybreakless%2FSager-purple.svg)](https://github.com/ybreakless/Sager)
+<p align="center">
+  <img src="assets/logo.png" alt="Sager Logo" width="180">
+</p>
+<h1 align="center">Sager - Game Companion & Cloud Save Sync</h1>
+<p align="center">
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Language-Pure%20Rust-orange.svg" alt="Rust"></a>
+  <a href="https://www.microsoft.com/windows"><img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg" alt="Platform"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/ybreakless/Sager"><img src="https://img.shields.io/badge/GitHub-ybreakless%2FSager-purple.svg" alt="GitHub"></a>
+</p>
 
 > **Sager** is a lightweight, pure Rust Windows system tray companion that unifies **Steam & Project Lightning Achievement Notifications** with **Ludusavi-style Game Save Backup and Google Drive Cloud Synchronization**.
 

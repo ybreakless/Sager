@@ -5,6 +5,7 @@ pub fn get_dashboard_html() -> &'static str {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sager - Game Companion & Cloud Sync</title>
+    <link rel="icon" type="image/png" href="/api/logo">
     <style>
         :root {
             --bg-base: #090d16;
@@ -441,7 +442,7 @@ pub fn get_dashboard_html() -> &'static str {
 <body>
     <header>
         <div class="logo-area">
-            <div class="logo-icon">S</div>
+            <img src="/api/logo" alt="Sager" style="width: 44px; height: 44px; object-fit: contain; border-radius: 10px; filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.4));" />
             <div>
                 <div class="logo-title">SAGER</div>
                 <div class="logo-tagline">Steam Achievements & Game Save Cloud Sync</div>

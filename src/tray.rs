@@ -70,7 +70,7 @@ pub fn to_wide_chars(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
 }
 
-/// Dynamically creates a sharp 32x32 32-bit ARGB "S" logo icon for the Windows system tray
+/// Dynamically creates a sharp 32x32 32-bit ARGB padlock with star logo icon for the Windows system tray
 pub fn create_sager_icon() -> isize {
     unsafe {
         let mut pixels = [0u32; 32 * 32];
@@ -96,54 +96,50 @@ pub fn create_sager_icon() -> isize {
                     continue;
                 }
 
-                // Check if inside the stylized bold "S" letter
-                let mut is_s = false;
-                // Top horizontal bar
-                if y >= 7 && y <= 9 && x >= 10 && x <= 22 {
-                    is_s = true;
-                }
-                // Top-left vertical spine
-                if y >= 10 && y <= 13 && x >= 10 && x <= 14 {
-                    is_s = true;
-                }
-                // Center horizontal bar
-                if y >= 14 && y <= 16 && x >= 11 && x <= 21 {
-                    is_s = true;
-                }
-                // Bottom-right vertical spine
-                if y >= 17 && y <= 20 && x >= 18 && x <= 22 {
-                    is_s = true;
-                }
-                // Bottom horizontal bar
-                if y >= 21 && y <= 23 && x >= 10 && x <= 22 {
-                    is_s = true;
+                // Check if inside the padlock emblem:
+                let mut is_lock = false;
+
+                // 1. Shackle: arched top (y from 6 to 13, x from 11 to 20)
+                let shackle_dx = (x as f32 - 15.5).abs();
+                let shackle_dy = (y as f32 - 11.5).min(0.0);
+                let shackle_r = (shackle_dx * shackle_dx + shackle_dy * shackle_dy).sqrt();
+
+                if y >= 6 && y <= 13 && shackle_dx <= 5.2 && (shackle_dx >= 2.5 || (shackle_dy < 0.0 && shackle_r >= 2.5 && shackle_r <= 5.2)) {
+                    is_lock = true;
                 }
 
-                // Soften / chamfer extreme corners
-                if (x == 10 && y == 7)
-                    || (x == 22 && y == 7)
-                    || (x == 10 && y == 23)
-                    || (x == 22 && y == 23)
-                {
-                    is_s = false;
+                // 2. Lock body: rectangular with rounded bottom corners (y from 13 to 25, x from 9 to 22)
+                if y >= 13 && y <= 25 && x >= 9 && x <= 22 {
+                    if !((y >= 24) && (x == 9 || x == 22)) {
+                        is_lock = true;
+                    }
                 }
 
-                if is_s {
-                    // Vertical gradient: Electric Cyan (top) -> Neon Violet (mid) -> Radiant Gold (bottom)
-                    let t = (y as f32 - 7.0) / 16.0;
-                    let (r, g, b) = if t < 0.5 {
-                        let f = t * 2.0;
-                        let r = (56.0 + (99.0 - 56.0) * f) as u8;
-                        let g = (189.0 + (102.0 - 189.0) * f) as u8;
-                        let b = (248.0 + (241.0 - 248.0) * f) as u8;
-                        (r, g, b)
-                    } else {
-                        let f = (t - 0.5) * 2.0;
-                        let r = (99.0 + (251.0 - 99.0) * f) as u8;
-                        let g = (102.0 + (191.0 - 102.0) * f) as u8;
-                        let b = (241.0 + (36.0 - 241.0) * f) as u8;
-                        (r, g, b)
-                    };
+                // 3. Five-pointed star cutout inside lock body:
+                let mut is_star = false;
+                if is_lock && y >= 16 && y <= 23 && x >= 12 && x <= 19 {
+                    let sx = x as f32 - 15.5;
+                    let sy = y as f32 - 19.5;
+                    let sr = (sx * sx + sy * sy).sqrt();
+                    let angle = sy.atan2(sx);
+                    let star_radius = 1.3 + 2.0 * (5.0 * angle - std::f32::consts::FRAC_PI_2).cos().max(0.0);
+                    if sr <= star_radius {
+                        is_star = true;
+                    }
+                }
+
+                if is_star {
+                    // Radiant golden amber star emblem
+                    let r = 251u8;
+                    let g = 191u8;
+                    let b = 36u8;
+                    pixels[y * 32 + x] =
+                        (255u32 << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                } else if is_lock {
+                    // Padlock body in crisp clean white/light cyan
+                    let r = 245u8;
+                    let g = 250u8;
+                    let b = 255u8;
                     pixels[y * 32 + x] =
                         (255u32 << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
                 } else {
