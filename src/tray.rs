@@ -105,7 +105,7 @@ impl SystemTray {
                 lpszClassName: class_name.as_ptr(),
             };
 
-            RegisterClassW(&wc);
+            let _ = RegisterClassW(&wc);
 
             let window_title = to_wide_chars("Sager Game Companion");
             let hwnd = CreateWindowExW(
@@ -127,20 +127,24 @@ impl SystemTray {
                 return Err("Failed to create tray window".to_string());
             }
 
+            let icon = LoadIconW(null_mut(), IDI_APPLICATION);
+
             let mut nid = std::mem::zeroed::<NOTIFYICONDATAW>();
             nid.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as u32;
             nid.hWnd = hwnd;
             nid.uID = 1;
             nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
             nid.uCallbackMessage = WM_TRAY_CALLBACK;
-            nid.hIcon = LoadIconW(null_mut(), IDI_APPLICATION);
+            nid.hIcon = icon;
 
             let tip = to_wide_chars("Sager - Game Companion & Save Sync");
             let len = tip.len().min(nid.szTip.len() - 1);
             nid.szTip[..len].copy_from_slice(&tip[..len]);
 
-            if Shell_NotifyIconW(NIM_ADD, &nid) == 0 {
-                return Err("Failed to add system tray icon".to_string());
+            let add_res = Shell_NotifyIconW(NIM_ADD, &nid);
+
+            if add_res == 0 {
+                return Err("Failed to add system tray icon (Explorer taskbar not ready or isolated session)".to_string());
             }
 
             Ok(Self {

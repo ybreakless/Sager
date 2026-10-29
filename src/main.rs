@@ -62,25 +62,40 @@ fn main() {
     });
 
     // 4. Initialize Windows System Tray Icon
-    match SystemTray::new() {
-        Ok(tray) => {
-            let handle = tray.handle();
-            start_notification_listener(handle, rx, Arc::clone(&shared_config));
+    println!(">> Initializing Windows System Tray...");
+    if let Ok(tray) = SystemTray::new() {
+        let handle = tray.handle();
+        start_notification_listener(handle, rx, Arc::clone(&shared_config));
 
-            // Startup notification
-            let sound = shared_config.lock().unwrap().sound_enabled;
-            handle.show_balloon_notification(
-                "🎮 Sager Activated",
-                "Monitoring Steam / Project Lightning achievements & syncing game saves!",
-                sound,
-            );
+        // Startup notification
+        let sound = shared_config.lock().unwrap().sound_enabled;
+        handle.show_balloon_notification(
+            "🎮 Sager Activated",
+            "Monitoring Steam / Project Lightning achievements & syncing game saves!",
+            sound,
+        );
 
-            println!(">> Sager system tray icon added. Running message loop...");
-            tray.run_message_loop();
-            println!(">> Sager shutting down cleanly.");
-        }
-        Err(e) => {
-            eprintln!("Failed to create Windows System Tray icon: {}", e);
+        println!(">> Sager system tray icon added. Running message loop...");
+        tray.run_message_loop();
+        println!(">> Sager shutting down cleanly.");
+    } else {
+        println!(">> Background engine active. Waiting for interactive desktop tray...");
+        // Keep web server and watcher active and retry connecting to tray
+        loop {
+            thread::sleep(Duration::from_secs(5));
+            if let Ok(tray) = SystemTray::new() {
+                let handle = tray.handle();
+                start_notification_listener(handle, rx, Arc::clone(&shared_config));
+                let sound = shared_config.lock().unwrap().sound_enabled;
+                handle.show_balloon_notification(
+                    "🎮 Sager Activated",
+                    "Monitoring Steam / Project Lightning achievements & syncing game saves!",
+                    sound,
+                );
+                println!(">> Sager system tray icon connected! Running message loop...");
+                tray.run_message_loop();
+                break;
+            }
         }
     }
 }
