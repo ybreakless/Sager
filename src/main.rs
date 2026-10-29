@@ -29,6 +29,9 @@ fn main() {
         config.get_backups_per_day(),
         config.auto_backup_interval_minutes);
 
+    let args: Vec<String> = std::env::args().collect();
+    let open_ui_on_start = args.iter().any(|a| a == "--ui" || a == "--dashboard" || a == "-d");
+
     let shared_config = Arc::new(Mutex::new(config));
     let (tx, rx) = channel::<AchievementNotification>();
 
@@ -40,6 +43,9 @@ fn main() {
     // 2. Start Embedded Web Server & Dashboard
     WebServer::start(Arc::clone(&shared_config), tx.clone());
     println!(">> Web Dashboard started on http://127.0.0.1:3939");
+    if open_ui_on_start {
+        let _ = open::that("http://127.0.0.1:3939");
+    }
 
     // 3. Start Background Auto-Backup Thread
     let backup_config = Arc::clone(&shared_config);

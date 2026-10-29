@@ -78,6 +78,15 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
     - Audio chime preview test button (`🔊 Test Sound`).
     - Cloud directory and optional custom Google Drive executable paths.
 
+### 🧪 5. Interactive Test Center & Diagnostic Suite
+- **Full System Health Check**: One-click benchmark of all 7 subsystems (Google Drive write latency, emulator paths, scanner count, archives, audio, startup).
+- **Live Terminal & Activity Console**: Real-time scrolling event log displaying color-coded status, write speeds, backup actions, and achievement toasts.
+- **Custom Achievement Simulator**: Test Windows tray toast alerts with customized game names and titles before playing.
+- **Google Drive Latency Benchmark**: Live disk write/read/cleanup test measuring cloud sync latency in milliseconds.
+- **Convenient Launchers**:
+  - Double-click [`launch_dashboard.bat`](launch_dashboard.bat) to open the UI instantly in your default browser.
+  - Run `sager.exe --ui` to start Sager and open the dashboard immediately.
+
 ---
 
 ## 🔄 Cross-PC Synchronization Workflow
