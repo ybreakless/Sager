@@ -1,111 +1,199 @@
 # 🎮 Sager - Game Companion & Cloud Save Sync
 
-> **Pure Rust Windows System Tray Companion** combining **Steam & Project Lightning Achievement Notifications** with **Ludusavi-style Save Game Backup & Google Drive Cloud Sync**.
+[![Rust](https://img.shields.io/badge/Language-Pure%20Rust-orange.svg)](https://www.rust-lang.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)](https://www.microsoft.com/windows)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-ybreakless%2FSager-purple.svg)](https://github.com/ybreakless/Sager)
+
+> **Sager** is a lightweight, pure Rust Windows system tray companion that unifies **Steam & Project Lightning Achievement Notifications** with **Ludusavi-style Game Save Backup and Google Drive Cloud Synchronization**.
 
 ---
 
-## 🌟 Overview
+## 💡 Why Sager?
 
-**Sager** solves two critical PC gaming workflows in one unified, lightweight, pure Rust application:
+Gamers who use **Project Lightning**, **Goldberg Steam Emulator**, or games downloaded from alternative sources often have to juggle multiple separate utilities:
+1. A third-party achievement notifier to see unlocks while playing.
+2. A backup manager like **Ludusavi** to locate save directories.
+3. Manual file copying or cloud uploaders to transfer progress between a **laptop** and a **desktop gaming PC**.
 
-1. **🏆 Steam & Game Achievements Notifier**:
-   - Seamlessly monitors **Project Lightning**, **Goldberg Steam Emulator**, and native **Steam** save/achievement locations (`%APPDATA%\Goldberg SteamEmu Saves`, `%LOCALAPPDATA%\ProjectLightning`, etc.).
-   - Detects newly earned achievements in real-time.
-   - Pops native **Windows System Tray Toast / Balloon Alerts** with custom titles, descriptions, and audio chimes.
-   - Maintains a local history log (`sager_achievements.json`) of all unlocked achievements.
+**Sager replaces all of these tools with a single, ultra-fast, zero-dependency Rust executable (~2 MB) that sits silently in your Windows System Tray.**
 
-2. **💾 Save Backup & Google Drive Cloud Sync (Ludusavi Engine)**:
-   - Automatically scans and detects game save directories across standard PC locations:
-     - `%USERPROFILE%\Saved Games`
-     - `%USERPROFILE%\Documents\My Games`
-     - `%LOCALAPPDATA%` (`Local` & `LocalLow`)
-     - `%APPDATA%` (Roaming & Goldberg emulator saves)
-     - Steam Cloud Userdata (`<SteamPath>\userdata\<user_id>\<app_id>\remote`)
-     - Custom user-configured game folders
-   - **One-Click Backup**: Creates compressed timestamped zip archives with JSON manifests (`sager_manifest.json`) in your designated backup folder.
-   - **Cross-PC Save Sync via Google Drive**: Point your backup path to your Google Drive folder (`G:\My Drive\SagerBackups` or `C:\Users\<user>\Google Drive\SagerBackups`) on your laptop and desktop. Save games backed up from your laptop can be instantly restored on another PC!
-   - **One-Click Restore**: Safely extracts the cloud save directly into the game's original save directory on your PC. Automatically creates a safety backup of your existing local save before overwriting.
-   - **Automated Background Backup**: Runs scheduled backups automatically at user-defined intervals (e.g. every 60 minutes).
-
-3. **🖥️ Windows System Tray & Embedded Dashboard**:
-   - Sits in the Windows Notification Area (System Tray) with zero intrusive window clutter.
-   - Right-click tray menu provides instant controls:
-     - `🌐 Open Dashboard`
-     - `💾 Backup All Game Saves Now`
-     - `📂 Open Backup Folder (Google Drive)`
-     - `🔔 Test Achievement Alert`
-     - `⚙️ Settings`
-     - `❌ Exit Sager`
-   - Double-clicking the tray icon opens the **Sager Web Dashboard** (`http://127.0.0.1:3939`), featuring a cyberpunk dark-mode interface for viewing achievements, managing saves, and restoring backups.
+Whether you downloaded games from Project Lightning, Goldberg emulators, or native Steam, Sager tracks your achievements in real-time and ensures your game saves are always backed up to Google Drive and ready to restore on any PC with a single click.
 
 ---
 
-## 🛠️ Architecture
+## ✨ Features
 
-Sager is written in **100% pure Rust** with no heavyweight UI frameworks or external C++ runtimes:
+### 🏆 1. Real-Time Achievement Notifier (Project Lightning & Steam)
+- **Automatic File Watching**: Continuously monitors achievement databases from:
+  - `%APPDATA%\Goldberg SteamEmu Saves\<AppID>\achievements.json`
+  - `%LOCALAPPDATA%\ProjectLightning\` and `%APPDATA%\Project Lightning\`
+  - Official Steam userdata and overlay stores
+- **Native Windows Notifications**: Displays Windows tray balloon/toast alerts with game title, achievement name, description, and audio chime.
+- **Achievement History**: Stores a timestamped archive of all unlocked achievements accessible via the dashboard.
+- **Audio Chimes**: Plays a subtle Windows audio alert when an achievement unlocks.
+
+### 💾 2. Ludusavi-Style Save Backup & Cross-PC Cloud Sync
+- **Deep Save Directory Discovery**: Automatically scans PC save locations without manual configuration:
+  - `%USERPROFILE%\Saved Games`
+  - `%USERPROFILE%\Documents\My Games` and publisher folders (CD Projekt Red, etc.)
+  - `%LOCALAPPDATA%` and `%APPDATA%`
+  - Goldberg SteamEmu save directories
+  - Steam Cloud Userdata (`<SteamPath>\userdata\<UserID>\<AppID>\remote`)
+- **Automated Google Drive Sync**:
+  - Automatically detects your Google Drive virtual drive (`G:\My Drive`, `H:\My Drive`) or desktop sync directory.
+  - Generates compressed timestamped zip archives containing your save files and a `sager_manifest.json` metadata file.
+  - Automatically runs background backups on a configurable schedule (e.g. every 60 minutes).
+- **1-Click Cross-Device Restore**:
+  - Back up on your laptop -> Google Drive syncs -> Click **Restore to PC** on your desktop.
+  - Automatically creates a safety backup of any existing local saves before applying cloud saves.
+
+### 🖥️ 3. Windows System Tray & Google Drive Integration
+- **Left-Click Tray Icon**: Instantly opens your preferred save directory / Google Drive folder in Windows Explorer.
+- **Right-Click Context Menu**:
+  - **Live Google Drive Status**: Displays whether Google Drive for Desktop is Running, Stopped, or Not Installed.
+  - **1-Click Google Drive Launch**: When Google Drive isn't running, start it directly from the tray or dashboard.
+  - **Backup All Game Saves Now**: Trigger a full system backup on demand.
+  - **Open Backup Folder**: Quick access to Google Drive archives.
+  - **Test Achievement Alert**: Verify audio and tray notifications anytime.
+  - **Open Dashboard**: Launch the local web interface.
+  - **Exit Sager**: Clean tray icon removal and process termination.
+
+### 🌐 4. Embedded Web Dashboard (`http://127.0.0.1:3939`)
+- Built-in lightweight HTTP server serving a modern dark-mode interface:
+  - **Status Strip**: Live Google Drive status with start button, backup target path, discovered games count, and total snapshots.
+  - **Game Saves Table**: View all discovered games, categories, disk sizes, and backup individual titles.
+  - **Cloud Restore Table**: List timestamped archives stored in Google Drive and restore them to your local PC.
+  - **Achievement Feed**: Browse your trophies and unlock dates.
+  - **Settings Panel**: Configure backup directories, auto-backup intervals, audio alerts, and Google Drive executable path.
+
+---
+
+## 🔄 Cross-PC Synchronization Workflow
+
+How to keep your saves synchronized between your Laptop and Desktop:
+
+```mermaid
+flowchart LR
+    subgraph Laptop ["💻 Laptop (Gaming on the go)"]
+        L_Game["Play Game (Project Lightning / Goldberg / Steam)"]
+        L_Sager["Sager Background Sync"]
+        L_Game -->|Save updated| L_Sager
+    end
+
+    subgraph Cloud ["☁️ Google Drive"]
+        GD["My Drive / SagerBackups\n(Timestamped Zip + Manifest)"]
+    end
+
+    subgraph PC ["🖥️ Desktop PC (At home)"]
+        PC_Sager["Sager Dashboard"]
+        PC_Game["Game Save Directory"]
+        PC_Sager -->|1-Click Restore| PC_Game
+    end
+
+    L_Sager -->|Uploads archive| GD
+    GD -->|Syncs automatically| PC_Sager
+```
+
+1. **On your Laptop**:
+   - Run Sager with the backup directory set to Google Drive (e.g., `G:\My Drive\SagerBackups`).
+   - Sager automatically backs up your saves during gameplay.
+2. **On your Desktop PC**:
+   - Run Sager and open the Web Dashboard (`http://127.0.0.1:3939`).
+   - In the **Cloud Backups for Restore** table, click **Restore to PC** next to any game.
+   - Sager restores the save to the proper local PC path so you can pick up right where you left off!
+
+---
+
+## 🚀 Installation & Building
+
+### Prerequisites
+- Windows 10 or Windows 11 (64-bit)
+- [Rust toolchain](https://rustup.rs/) (edition 2021)
+- [Google Drive for Desktop](https://www.google.com/drive/download/) (optional, for cloud sync)
+
+### Build from Source
+```powershell
+# Clone the repository
+git clone https://github.com/ybreakless/Sager.git
+cd Sager
+
+# Build optimized release binary
+cargo build --release
+```
+The compiled standalone executable will be located at:
+```
+target\release\sager.exe
+```
+
+### Launching Sager
+Run the release binary directly or start it via PowerShell:
+```powershell
+.\target\release\sager.exe
+```
+The application will minimize into the Windows System Tray (near the clock).
+
+---
+
+## ⚡ Windows Startup Integration
+
+To have Sager automatically launch silently whenever Windows starts:
+
+1. Run the included PowerShell startup helper script:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install_startup.ps1
+```
+This creates a shortcut in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk` pointing to your compiled `sager.exe`.
+
+---
+
+## 📁 Project Architecture
 
 ```
 Sager/
-├── Cargo.toml
-├── src/
-│   ├── main.rs                 # Application entry, threads orchestration & Win32 message loop
-│   ├── config.rs               # Auto-detection of Google Drive, Steam, Goldberg & JSON config
-│   ├── tray.rs                 # Win32 System Tray, context menu, & balloon notifications
-│   ├── achievements/
-│   │   ├── mod.rs
-│   │   ├── models.rs           # Achievement & Notification data structures
-│   │   ├── watcher.rs          # Background scanner for Goldberg/Project Lightning/Steam achievements
-│   │   └── history.rs          # Persistent JSON storage for unlocked achievements
-│   ├── backup/
-│   │   ├── mod.rs
-│   │   ├── scanner.rs          # Ludusavi-style save directory discovery engine
-│   │   ├── archiver.rs         # Zip compression & manifest generation
-│   │   └── restore.rs          # Safe extraction & pre-restore safety snapshots
-│   └── web/
-│       ├── mod.rs
-│       ├── server.rs           # Embedded HTTP server & JSON REST API (tiny_http)
-│       └── ui.rs               # Inlined modern responsive dark-mode Dashboard HTML/CSS/JS
+├── Cargo.toml                  # Zero heavyweight framework dependencies
+├── LICENSE                     # MIT License
+├── README.md                   # Documentation
+├── scripts/
+│   ├── install_startup.ps1     # Creates Windows Startup shortcut
+│   └── start_sager.vbs         # Silent VBScript launcher
+└── src/
+    ├── main.rs                 # Thread coordination & Win32 message loop
+    ├── config.rs               # Auto-detection for Google Drive, Steam, Goldberg & JSON config
+    ├── tray.rs                 # Win32 System Tray icon, context menu, & notifications
+    ├── achievements/
+    │   ├── mod.rs
+    │   ├── models.rs           # Achievement data structures
+    │   ├── watcher.rs          # Real-time filesystem scanner for emulators & Steam
+    │   └── history.rs          # Persistent JSON storage for unlocked trophies
+    ├── backup/
+    │   ├── mod.rs
+    │   ├── scanner.rs          # Ludusavi-style save directory discovery engine
+    │   ├── archiver.rs         # Zip compression & manifest generation
+    │   └── restore.rs          # Safe extraction & pre-restore safety backups
+    └── web/
+        ├── mod.rs
+        ├── server.rs           # Embedded HTTP REST API server (tiny_http)
+        └── ui.rs               # Dark-mode dashboard (HTML/CSS/JS)
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🤝 Contributing & Git Workflow
 
-### Prerequisites
-- Windows 10 / 11
-- Rust toolchain (`cargo`, `rustc`)
+Sager uses a professional git workflow with feature branches:
+- `main`: Production-ready releases
+- `develop`: Ongoing development
+- `feature/*`: Dedicated branches for new features
 
-### Build
 ```powershell
-# Debug build
-cargo build
-
-# Optimized release binary
-cargo build --release
+git checkout -b feature/your-feature-name
+# Make your changes
+git commit -m "feat(module): description of feature"
 ```
-The compiled executable is placed at `target\release\sager.exe`.
-
-### Run
-```powershell
-cargo run --release
-```
-Sager will start silently in your Windows System Tray!
 
 ---
 
-## ☁️ Setting Up Google Drive Cross-Device Sync
+## 📜 License
 
-1. On your **Laptop**:
-   - Open Sager Dashboard (`http://127.0.0.1:3939` or click `🌐 Open Dashboard` from the tray).
-   - In **Settings & Paths**, verify the **Google Drive / Cloud Backup Directory** (e.g. `G:\My Drive\SagerBackups`).
-   - Click **Backup All Saves** or let Auto-Backup run.
-2. On your **Other PC**:
-   - Run Sager and ensure Google Drive points to the same `SagerBackups` folder.
-   - Go to **Game Saves & Cloud Restore**.
-   - Under **Available Cloud Backups for Restore**, find the game and click **🔄 Restore to PC**.
-   - Sager will extract the save to the PC's corresponding save path and you can start playing immediately!
-
----
-
-## 📄 License
-MIT License.
+This project is licensed under the [MIT License](LICENSE).
