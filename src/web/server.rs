@@ -65,6 +65,7 @@ impl WebServer {
                         "achievements_count": achievements.len(),
                         "auto_backup_enabled": cfg.auto_backup_enabled,
                         "auto_backup_interval": cfg.auto_backup_interval_minutes,
+                        "backups_per_day": cfg.get_backups_per_day(),
                         "sound_enabled": cfg.sound_enabled,
                         "google_drive_running": drive.google_drive_running,
                         "google_drive_installed": drive.google_drive_installed,
@@ -297,11 +298,14 @@ impl WebServer {
                         {
                             cfg.backup_directory = PathBuf::from(dir);
                         }
-                        if let Some(interval) = val
+                        if let Some(bpd) = val.get("backups_per_day").and_then(|v| v.as_u64()) {
+                            cfg.set_backups_per_day(bpd as u32);
+                        } else if let Some(interval) = val
                             .get("auto_backup_interval_minutes")
                             .and_then(|v| v.as_u64())
                         {
                             cfg.auto_backup_interval_minutes = interval;
+                            cfg.backups_per_day = Some((1440 / interval.max(1)).max(1) as u32);
                         }
                         if let Some(sound) =
                             val.get("sound_enabled").and_then(|v| v.as_bool())
@@ -330,6 +334,21 @@ impl WebServer {
 
                     let resp_body =
                         json!({ "success": true, "message": "Settings updated" });
+                    let resp = Response::from_string(resp_body.to_string())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/test-sound" && method == Method::Post {
+                    #[link(name = "user32")]
+                    extern "system" {
+                        fn MessageBeep(uType: u32) -> i32;
+                    }
+                    unsafe {
+                        MessageBeep(0x00000040); // MB_ICONASTERISK
+                    }
+                    let resp_body = json!({ "success": true, "message": "Audio chime played" });
                     let resp = Response::from_string(resp_body.to_string())
                         .with_header(json_header);
                     let _ = req.respond(resp);

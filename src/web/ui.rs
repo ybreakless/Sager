@@ -48,26 +48,30 @@ pub fn get_dashboard_html() -> &'static str {
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-            border-radius: 10px;
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #fbbf24 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            font-size: 24px;
+            font-weight: 900;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+            letter-spacing: -1px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .logo-title {
             font-size: 22px;
             font-weight: 800;
-            letter-spacing: 1px;
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #fbbf24);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -132,7 +136,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         .status-strip {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -155,7 +159,7 @@ pub fn get_dashboard_html() -> &'static str {
         }
 
         .status-value {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--text-main);
             display: flex;
@@ -371,6 +375,7 @@ pub fn get_dashboard_html() -> &'static str {
             font-size: 12px;
             color: var(--text-muted);
             margin-bottom: 8px;
+            line-height: 1.4;
         }
 
         .form-input {
@@ -387,6 +392,29 @@ pub fn get_dashboard_html() -> &'static str {
 
         .form-input:focus {
             border-color: var(--primary);
+        }
+
+        .preset-btn {
+            background: #162035;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            background: #1c2942;
+            border-color: var(--primary);
+        }
+
+        .preset-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
         }
 
         .toast-msg {
@@ -413,10 +441,10 @@ pub fn get_dashboard_html() -> &'static str {
 <body>
     <header>
         <div class="logo-area">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon">S</div>
             <div>
                 <div class="logo-title">SAGER</div>
-                <div class="logo-tagline">Steam Achievements & Game Save Cloud Backup</div>
+                <div class="logo-tagline">Steam Achievements & Game Save Cloud Sync</div>
             </div>
         </div>
         <div class="quick-actions">
@@ -429,7 +457,7 @@ pub fn get_dashboard_html() -> &'static str {
     <div class="nav-tabs">
         <div class="nav-tab active" onclick="switchTab('tab-saves')">💾 Game Saves & Cloud Restore</div>
         <div class="nav-tab" onclick="switchTab('tab-achievements')">🏆 Steam Achievements Notifier</div>
-        <div class="nav-tab" onclick="switchTab('tab-settings')">⚙️ Settings & Paths</div>
+        <div class="nav-tab" onclick="switchTab('tab-settings')">⚙️ Options & Backup Schedule</div>
     </div>
 
     <main>
@@ -449,7 +477,7 @@ pub fn get_dashboard_html() -> &'static str {
                 </div>
                 <div class="status-card">
                     <div class="status-label">Auto-Backup Engine</div>
-                    <div class="status-value"><span class="badge-live">Active</span> <span id="status-interval" style="font-size: 13px; color: var(--text-muted);">Every 60 min</span></div>
+                    <div class="status-value"><span class="badge-live">Active</span> <span id="status-interval" style="font-size: 13px; color: var(--gold); font-weight: 700;">24x / day</span></div>
                 </div>
                 <div class="status-card">
                     <div class="status-label">Discovered Games</div>
@@ -462,9 +490,12 @@ pub fn get_dashboard_html() -> &'static str {
             </div>
 
             <div class="card">
-                <div class="card-header">
+                <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
                     <div class="card-title">🎮 Discovered PC Game Saves (Ludusavi Engine)</div>
-                    <button class="btn btn-secondary btn-sm" onclick="loadGames()">🔄 Rescan Saves</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="game-search" class="form-input" placeholder="🔍 Search games..." oninput="filterGames()" style="padding: 6px 12px; font-size: 12px; width: 220px;" />
+                        <button class="btn btn-secondary btn-sm" onclick="loadGames()">🔄 Rescan Saves</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
@@ -538,30 +569,48 @@ pub fn get_dashboard_html() -> &'static str {
         <div id="tab-settings" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">⚙️ Sager Configuration</div>
+                    <div class="card-title">⚙️ Options & Backup Schedule</div>
                 </div>
                 <form id="config-form" onsubmit="saveSettings(event)">
+                    <!-- Backup Frequency / Times per Day -->
+                    <div class="form-group" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+                        <label class="form-label" style="font-size: 14px; color: var(--primary);">⏰ Backup Frequency: How many times a day?</label>
+                        <div class="form-hint">Choose how frequently Sager automatically saves your game progress to Google Drive. This ensures your latest saves are ready to restore whenever you switch between your laptop and desktop PC!</div>
+                        
+                        <div class="frequency-presets" style="display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0;">
+                            <button type="button" class="preset-btn" onclick="setPreset(1)">1x / Day (Every 24h)</button>
+                            <button type="button" class="preset-btn" onclick="setPreset(2)">2x / Day (Every 12h)</button>
+                            <button type="button" class="preset-btn" onclick="setPreset(4)">4x / Day (Every 6h)</button>
+                            <button type="button" class="preset-btn" onclick="setPreset(12)">12x / Day (Every 2h)</button>
+                            <button type="button" class="preset-btn active" id="btn-preset-24" onclick="setPreset(24)">24x / Day (Hourly) ⭐</button>
+                            <button type="button" class="preset-btn" onclick="setPreset(48)">48x / Day (Every 30m)</button>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 14px; margin-top: 12px; flex-wrap: wrap;">
+                            <span style="font-size: 13px; color: var(--text-muted);">Custom times per day:</span>
+                            <input type="number" id="cfg-bpd" class="form-input" min="1" max="144" value="24" oninput="updateFreqNotice()" style="width: 90px; text-align: center; font-weight: bold;" />
+                            <span id="freq-notice" style="font-size: 13px; color: var(--gold); font-weight: 700;">⚡ Backing up 24 times a day (every 60 minutes)</span>
+                        </div>
+                        <input type="hidden" id="cfg-interval" value="60" />
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">Google Drive / Cloud Backup Directory</label>
-                        <div class="form-hint">Path where your save zip archives and manifests are stored. Set this to your Google Drive folder on both your laptop and PC for automatic cross-machine save syncing!</div>
+                        <div class="form-hint">Directory where your save zip archives and manifests are stored. Point this to your Google Drive folder on both your laptop and desktop PC for instant cross-PC syncing!</div>
                         <input type="text" id="cfg-backup-dir" class="form-input" required />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Google Drive Executable Path (Optional)</label>
-                        <div class="form-hint">Custom path to GoogleDriveFS.exe. Leave blank for auto-detection.</div>
+                        <div class="form-hint">Custom path to GoogleDriveFS.exe. Leave blank for automatic detection.</div>
                         <input type="text" id="cfg-gdrive-exe" class="form-input" placeholder="Auto-detect" />
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Auto-Backup Interval (Minutes)</label>
-                        <input type="number" id="cfg-interval" class="form-input" min="5" max="1440" required />
-                    </div>
-
-                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin-bottom: 24px; padding: 14px; background: rgba(255,255,255,0.01); border-radius: 6px; border: 1px solid var(--border);">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="cfg-sound" /> Enable Achievement Pop Sound
+                            <input type="checkbox" id="cfg-sound" /> Enable Achievement Audio Chime
                         </label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="testSound()">🔊 Test Sound</button>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="cfg-notif" /> Enable Windows Desktop Notifications
                         </label>
@@ -570,7 +619,7 @@ pub fn get_dashboard_html() -> &'static str {
                         </label>
                     </div>
 
-                    <button type="submit" class="btn">💾 Save Settings</button>
+                    <button type="submit" class="btn">💾 Save Options</button>
                 </form>
             </div>
         </div>
@@ -579,6 +628,8 @@ pub fn get_dashboard_html() -> &'static str {
     <div id="toast" class="toast-msg"></div>
 
     <script>
+        let allDiscoveredGames = [];
+
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -599,6 +650,39 @@ pub fn get_dashboard_html() -> &'static str {
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function setPreset(times) {
+            document.getElementById('cfg-bpd').value = times;
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            updateFreqNotice();
+        }
+
+        function updateFreqNotice() {
+            let times = parseInt(document.getElementById('cfg-bpd').value) || 24;
+            if (times < 1) times = 1;
+            if (times > 144) times = 144;
+            const minutes = Math.max(1, Math.round(1440 / times));
+            document.getElementById('cfg-interval').value = minutes;
+            const notice = document.getElementById('freq-notice');
+            if (minutes >= 60) {
+                const hours = (minutes / 60).toFixed(1).replace('.0', '');
+                notice.textContent = `⚡ Backing up ${times} times a day (every ${hours} hour${hours !== '1' ? 's' : ''})`;
+            } else {
+                notice.textContent = `⚡ Backing up ${times} times a day (every ${minutes} minutes)`;
+            }
+        }
+
+        async function testSound() {
+            try {
+                await fetch('/api/test-sound', { method: 'POST' });
+                showToast('🔊 Audio chime played!');
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         async function loadDriveStatus() {
@@ -653,10 +737,41 @@ pub fn get_dashboard_html() -> &'static str {
                 document.getElementById('status-backup-dir').textContent = data.backup_dir;
                 document.getElementById('status-games-count').textContent = data.games_count;
                 document.getElementById('status-ach-count').textContent = data.achievements_count;
-                document.getElementById('status-interval').textContent = 'Every ' + data.auto_backup_interval + ' min';
+                const bpd = data.backups_per_day || Math.max(1, Math.round(1440 / (data.auto_backup_interval || 60)));
+                document.getElementById('status-interval').textContent = `${bpd}x / day (Every ${data.auto_backup_interval}m)`;
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function filterGames() {
+            const query = (document.getElementById('game-search').value || '').toLowerCase();
+            const filtered = allDiscoveredGames.filter(g => 
+                g.name.toLowerCase().includes(query) || 
+                g.save_category.toLowerCase().includes(query) ||
+                g.source_path.toLowerCase().includes(query)
+            );
+            renderGamesTable(filtered);
+        }
+
+        function renderGamesTable(games) {
+            const tbody = document.getElementById('games-table-body');
+            if (games.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No matching game saves found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = games.map(g => `
+                <tr>
+                    <td style="font-weight: 700; color: var(--text-main);">${g.name}</td>
+                    <td><span style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${g.save_category}</span></td>
+                    <td style="font-family: monospace; font-size: 11px; color: var(--text-muted);">${g.source_path}</td>
+                    <td>${formatBytes(g.total_size_bytes)}</td>
+                    <td>${g.files_count}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="backupSingleGame('${encodeURIComponent(g.name)}', '${encodeURIComponent(g.source_path)}')">💾 Backup</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         async function loadGames() {
@@ -664,24 +779,9 @@ pub fn get_dashboard_html() -> &'static str {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Scanning save games...</td></tr>';
             try {
                 const res = await fetch('/api/games');
-                const games = await res.json();
-                if (games.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No game saves found in standard locations.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = games.map(g => `
-                    <tr>
-                        <td style="font-weight: 700;">${g.name}</td>
-                        <td><span style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${g.save_category}</span></td>
-                        <td style="font-family: monospace; font-size: 11px; color: var(--text-muted);">${g.source_path}</td>
-                        <td>${formatBytes(g.total_size_bytes)}</td>
-                        <td>${g.files_count}</td>
-                        <td>
-                            <button class="btn btn-sm" onclick="backupSingleGame('${encodeURIComponent(g.name)}', '${encodeURIComponent(g.source_path)}')">💾 Backup</button>
-                        </td>
-                    </tr>
-                `).join('');
-                document.getElementById('status-games-count').textContent = games.length;
+                allDiscoveredGames = await res.json();
+                renderGamesTable(allDiscoveredGames);
+                document.getElementById('status-games-count').textContent = allDiscoveredGames.length;
             } catch (e) {
                 tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);">Error scanning games</td></tr>';
             }
@@ -771,6 +871,15 @@ pub fn get_dashboard_html() -> &'static str {
                 document.getElementById('cfg-notif').checked = cfg.notifications_enabled;
                 document.getElementById('cfg-auto-backup').checked = cfg.auto_backup_enabled;
                 document.getElementById('cfg-gdrive-exe').value = cfg.google_drive_exe || '';
+
+                const bpd = cfg.backups_per_day || Math.max(1, Math.round(1440 / (cfg.auto_backup_interval_minutes || 60)));
+                document.getElementById('cfg-bpd').value = bpd;
+                updateFreqNotice();
+
+                // Highlight matching preset button if any
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent.startsWith(bpd + 'x'));
+                });
             } catch (e) {
                 console.error(e);
             }
@@ -779,9 +888,13 @@ pub fn get_dashboard_html() -> &'static str {
         async function saveSettings(e) {
             e.preventDefault();
             const gdriveExe = document.getElementById('cfg-gdrive-exe').value.trim();
+            const bpd = parseInt(document.getElementById('cfg-bpd').value) || 24;
+            const interval = Math.max(1, Math.round(1440 / bpd));
+
             const config = {
                 backup_directory: document.getElementById('cfg-backup-dir').value,
-                auto_backup_interval_minutes: parseInt(document.getElementById('cfg-interval').value),
+                auto_backup_interval_minutes: interval,
+                backups_per_day: bpd,
                 sound_enabled: document.getElementById('cfg-sound').checked,
                 notifications_enabled: document.getElementById('cfg-notif').checked,
                 auto_backup_enabled: document.getElementById('cfg-auto-backup').checked,
@@ -795,7 +908,7 @@ pub fn get_dashboard_html() -> &'static str {
             });
 
             if (res.ok) {
-                showToast('✅ Configuration saved successfully!');
+                showToast(`✅ Saved! Backing up ${bpd} times a day to Google Drive.`);
                 loadStatus();
                 loadBackups();
             } else {
