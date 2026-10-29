@@ -24,8 +24,9 @@ fn main() {
     println!("Backup Target Directory: {}", config.backup_directory.display());
     println!("Notifications: {}", if config.notifications_enabled { "Enabled" } else { "Disabled" });
     println!("Sound Chime: {}", if config.sound_enabled { "Enabled" } else { "Disabled" });
-    println!("Auto-Backup: {} (every {} mins)", 
+    println!("Auto-Backup: {} ({}x daily, every {} mins)", 
         if config.auto_backup_enabled { "Enabled" } else { "Disabled" }, 
+        config.get_backups_per_day(),
         config.auto_backup_interval_minutes);
 
     let shared_config = Arc::new(Mutex::new(config));

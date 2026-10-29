@@ -49,9 +49,13 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
   - Automatically creates a safety backup of any existing local saves before applying cloud saves.
 
 ### 🖥️ 3. Windows System Tray & Google Drive Integration
+- **Custom "S" Logo Tray Icon**: Distinctive cyberpunk cyan-to-gold "S" monogram icon embedded directly into the Windows notification tray area.
 - **Left-Click Tray Icon**: Instantly opens your preferred save directory / Google Drive folder in Windows Explorer.
+- **Double-Click Tray Icon**: Instantly launches the Sager Web Dashboard.
 - **Right-Click Context Menu**:
-  - **Live Google Drive Status**: Displays whether Google Drive for Desktop is Running, Stopped, or Not Installed.
+  - **Live Status Header**: Displays live active status, discovered games count, and unlocked trophy count.
+  - **Discovered Games Submenu**: Interactive dropdown displaying all detected game titles — click any game to immediately back up that individual save to Google Drive!
+  - **Live Google Drive Status**: Shows whether Google Drive for Desktop is Running, Stopped, or Not Installed.
   - **1-Click Google Drive Launch**: When Google Drive isn't running, start it directly from the tray or dashboard.
   - **Backup All Game Saves Now**: Trigger a full system backup on demand.
   - **Open Backup Folder**: Quick access to Google Drive archives.
@@ -61,11 +65,14 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
 
 ### 🌐 4. Embedded Web Dashboard (`http://127.0.0.1:3939`)
 - Built-in lightweight HTTP server serving a modern dark-mode interface:
-  - **Status Strip**: Live Google Drive status with start button, backup target path, discovered games count, and total snapshots.
-  - **Game Saves Table**: View all discovered games, categories, disk sizes, and backup individual titles.
+  - **Status Strip**: Live Google Drive status with start button, backup target path, backup daily frequency, discovered games count, and total snapshots.
+  - **Game Saves Table with Live Filter**: Real-time search bar to quickly find games, view categories and sizes, and back up individual titles.
   - **Cloud Restore Table**: List timestamped archives stored in Google Drive and restore them to your local PC.
   - **Achievement Feed**: Browse your trophies and unlock dates.
-  - **Settings Panel**: Configure backup directories, auto-backup intervals, audio alerts, and Google Drive executable path.
+  - **Options & Daily Backup Schedule**:
+    - Select how many times a day you want to save backups (`1x`, `2x`, `4x`, `12x`, `24x (Hourly)`, `48x`, or custom).
+    - Audio chime preview test button (`🔊 Test Sound`).
+    - Cloud directory and optional custom Google Drive executable paths.
 
 ---
 

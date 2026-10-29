@@ -21,25 +21,170 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     WS_OVERLAPPEDWINDOW,
 };
 
+pub const MF_POPUP: u32 = 0x00000010;
+pub const WM_LBUTTONDBLCLK: u32 = 0x0203;
+
+#[repr(C)]
+struct IconInfo {
+    f_icon: i32,
+    x_hotspot: u32,
+    y_hotspot: u32,
+    hbm_mask: isize,
+    hbm_color: isize,
+}
+
 #[link(name = "user32")]
 extern "system" {
     fn MessageBeep(uType: u32) -> i32;
+    fn CreateIconIndirect(piconinfo: *const IconInfo) -> isize;
+    fn DestroyIcon(hicon: isize) -> i32;
+}
+
+#[link(name = "gdi32")]
+extern "system" {
+    fn CreateBitmap(
+        nWidth: i32,
+        nHeight: i32,
+        nPlanes: u32,
+        nBitCount: u32,
+        lpBits: *const core::ffi::c_void,
+    ) -> isize;
+    fn DeleteObject(ho: isize) -> i32;
 }
 
 pub const WM_TRAY_CALLBACK: u32 = WM_APP + 1;
 
 pub const ID_TRAY_TITLE: usize = 1000;
-pub const ID_OPEN_DASHBOARD: usize = 1001;
-pub const ID_BACKUP_ALL: usize = 1002;
-pub const ID_OPEN_BACKUP_FOLDER: usize = 1003;
-pub const ID_TEST_ACHIEVEMENT: usize = 1004;
-pub const ID_SETTINGS: usize = 1005;
-pub const ID_EXIT: usize = 1006;
-pub const ID_LAUNCH_GDRIVE: usize = 1007;
-pub const ID_GDRIVE_STATUS: usize = 1008;
+pub const ID_STATUS_HEADER: usize = 1001;
+pub const ID_OPEN_DASHBOARD: usize = 1002;
+pub const ID_BACKUP_ALL: usize = 1003;
+pub const ID_OPEN_BACKUP_FOLDER: usize = 1004;
+pub const ID_TEST_ACHIEVEMENT: usize = 1005;
+pub const ID_SETTINGS: usize = 1006;
+pub const ID_EXIT: usize = 1007;
+pub const ID_LAUNCH_GDRIVE: usize = 1008;
+pub const ID_GDRIVE_STATUS: usize = 1009;
+pub const ID_GAME_BACKUP_BASE: usize = 2000;
 
 pub fn to_wide_chars(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
+}
+
+/// Dynamically creates a sharp 32x32 32-bit ARGB "S" logo icon for the Windows system tray
+pub fn create_sager_icon() -> isize {
+    unsafe {
+        let mut pixels = [0u32; 32 * 32];
+
+        for y in 0..32 {
+            for x in 0..32 {
+                let dx = (x as f32 - 15.5).abs();
+                let dy = (y as f32 - 15.5).abs();
+                let dist = (dx.powi(4) + dy.powi(4)).powf(0.25);
+
+                if dist > 14.5 {
+                    pixels[y * 32 + x] = 0; // 100% Transparent outside badge
+                    continue;
+                }
+
+                // Outer border ring: glowing electric cyan
+                if dist >= 13.0 {
+                    let r = 14u8;
+                    let g = 165u8;
+                    let b = 233u8;
+                    pixels[y * 32 + x] =
+                        (255u32 << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                    continue;
+                }
+
+                // Check if inside the stylized bold "S" letter
+                let mut is_s = false;
+                // Top horizontal bar
+                if y >= 7 && y <= 9 && x >= 10 && x <= 22 {
+                    is_s = true;
+                }
+                // Top-left vertical spine
+                if y >= 10 && y <= 13 && x >= 10 && x <= 14 {
+                    is_s = true;
+                }
+                // Center horizontal bar
+                if y >= 14 && y <= 16 && x >= 11 && x <= 21 {
+                    is_s = true;
+                }
+                // Bottom-right vertical spine
+                if y >= 17 && y <= 20 && x >= 18 && x <= 22 {
+                    is_s = true;
+                }
+                // Bottom horizontal bar
+                if y >= 21 && y <= 23 && x >= 10 && x <= 22 {
+                    is_s = true;
+                }
+
+                // Soften / chamfer extreme corners
+                if (x == 10 && y == 7)
+                    || (x == 22 && y == 7)
+                    || (x == 10 && y == 23)
+                    || (x == 22 && y == 23)
+                {
+                    is_s = false;
+                }
+
+                if is_s {
+                    // Vertical gradient: Electric Cyan (top) -> Neon Violet (mid) -> Radiant Gold (bottom)
+                    let t = (y as f32 - 7.0) / 16.0;
+                    let (r, g, b) = if t < 0.5 {
+                        let f = t * 2.0;
+                        let r = (56.0 + (99.0 - 56.0) * f) as u8;
+                        let g = (189.0 + (102.0 - 189.0) * f) as u8;
+                        let b = (248.0 + (241.0 - 248.0) * f) as u8;
+                        (r, g, b)
+                    } else {
+                        let f = (t - 0.5) * 2.0;
+                        let r = (99.0 + (251.0 - 99.0) * f) as u8;
+                        let g = (102.0 + (191.0 - 102.0) * f) as u8;
+                        let b = (241.0 + (36.0 - 241.0) * f) as u8;
+                        (r, g, b)
+                    };
+                    pixels[y * 32 + x] =
+                        (255u32 << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                } else {
+                    // Deep obsidian gamer background
+                    let bg_r = 15u8;
+                    let bg_g = 23u8;
+                    let bg_b = 42u8;
+                    pixels[y * 32 + x] =
+                        (245u32 << 24) | ((bg_r as u32) << 16) | ((bg_g as u32) << 8) | (bg_b as u32);
+                }
+            }
+        }
+
+        let hbm_color = CreateBitmap(32, 32, 1, 32, pixels.as_ptr() as *const _);
+        let mask = [0u8; 128]; // 32 * 32 / 8 = 128 bytes of zeros
+        let hbm_mask = CreateBitmap(32, 32, 1, 1, mask.as_ptr() as *const _);
+
+        if hbm_color == 0 || hbm_mask == 0 {
+            if hbm_color != 0 {
+                DeleteObject(hbm_color);
+            }
+            if hbm_mask != 0 {
+                DeleteObject(hbm_mask);
+            }
+            return 0;
+        }
+
+        let icon_info = IconInfo {
+            f_icon: 1,
+            x_hotspot: 0,
+            y_hotspot: 0,
+            hbm_mask,
+            hbm_color,
+        };
+
+        let hicon = CreateIconIndirect(&icon_info);
+        DeleteObject(hbm_color);
+        DeleteObject(hbm_mask);
+
+        hicon
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -88,6 +233,7 @@ impl TrayHandle {
 
 pub struct SystemTray {
     pub handle: TrayHandle,
+    pub icon_handle: isize,
 }
 
 impl SystemTray {
@@ -96,13 +242,21 @@ impl SystemTray {
             let class_name = to_wide_chars("SagerTrayClass");
             let hinstance = GetModuleHandleW(null());
 
+            // Create custom "S" logo icon
+            let s_icon = create_sager_icon();
+            let icon = if s_icon != 0 {
+                s_icon as windows_sys::Win32::UI::WindowsAndMessaging::HICON
+            } else {
+                LoadIconW(null_mut(), IDI_APPLICATION)
+            };
+
             let wc = WNDCLASSW {
                 style: 0,
                 lpfnWndProc: Some(tray_window_proc),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: hinstance,
-                hIcon: LoadIconW(null_mut(), IDI_APPLICATION),
+                hIcon: icon,
                 hCursor: null_mut(),
                 hbrBackground: null_mut(),
                 lpszMenuName: null(),
@@ -131,8 +285,6 @@ impl SystemTray {
                 return Err("Failed to create tray window".to_string());
             }
 
-            let icon = LoadIconW(null_mut(), IDI_APPLICATION);
-
             let mut nid = std::mem::zeroed::<NOTIFYICONDATAW>();
             nid.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as u32;
             nid.hWnd = hwnd;
@@ -141,7 +293,7 @@ impl SystemTray {
             nid.uCallbackMessage = WM_TRAY_CALLBACK;
             nid.hIcon = icon;
 
-            let tip = to_wide_chars("Sager - Game Companion & Save Sync");
+            let tip = to_wide_chars("Sager - Game Companion & Cloud Save Sync");
             let len = tip.len().min(nid.szTip.len() - 1);
             nid.szTip[..len].copy_from_slice(&tip[..len]);
 
@@ -156,6 +308,7 @@ impl SystemTray {
 
             Ok(Self {
                 handle: TrayHandle(hwnd as isize),
+                icon_handle: s_icon,
             })
         }
     }
@@ -170,6 +323,9 @@ impl SystemTray {
             while GetMessageW(&mut msg, null_mut(), 0, 0) != 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
+            }
+            if self.icon_handle != 0 {
+                DestroyIcon(self.icon_handle);
             }
         }
     }
@@ -201,7 +357,7 @@ pub fn start_notification_listener(
     });
 }
 
-/// Build and show the context menu with live Google Drive status
+/// Build and show rich context menu with live games list, Google Drive status, and backup triggers
 fn show_context_menu(hwnd: HWND) {
     unsafe {
         let mut pt = POINT { x: 0, y: 0 };
@@ -210,58 +366,84 @@ fn show_context_menu(hwnd: HWND) {
 
         let cfg = config::load_config();
         let drive_status = config::get_drive_status(&cfg);
+        let games = crate::backup::SaveScanner::scan_all(&cfg);
+        let achievements = crate::achievements::load_achievements_history();
+        let bpd = cfg.get_backups_per_day();
 
-        // ── Title ──
-        let title_text = to_wide_chars("Sager v0.1.0");
+        // ── Title & Status Header ──
+        let title_text = to_wide_chars("🎮 SAGER - Game Companion");
         AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_TRAY_TITLE, title_text.as_ptr());
+
+        let status_info = format!("📊 Status: {} Games | {} Trophies", games.len(), achievements.len());
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_STATUS_HEADER, to_wide_chars(&status_info).as_ptr());
+
+        let sched_info = if cfg.auto_backup_enabled {
+            format!("⏱️ Auto-Backup: {}x / day (Every {} min)", bpd, cfg.auto_backup_interval_minutes)
+        } else {
+            "⏱️ Auto-Backup: Disabled (Manual only)".to_string()
+        };
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&sched_info).as_ptr());
+
         AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
 
-        // ── Google Drive Status Section ──
-        let gdrive_label = if drive_status.google_drive_running {
-            to_wide_chars("Google Drive: Running")
-        } else if drive_status.google_drive_installed {
-            to_wide_chars("Google Drive: Stopped")
+        // ── Discovered Games Submenu ──
+        let games_submenu = CreatePopupMenu();
+        if games.is_empty() {
+            AppendMenuW(games_submenu, MF_STRING | MF_GRAYED, 0, to_wide_chars("(No games detected yet)").as_ptr());
         } else {
-            to_wide_chars("Google Drive: Not Installed")
+            for (i, game) in games.iter().take(15).enumerate() {
+                let item_text = format!("💾 Backup {}", game.name);
+                AppendMenuW(games_submenu, MF_STRING, ID_GAME_BACKUP_BASE + i, to_wide_chars(&item_text).as_ptr());
+            }
+            if games.len() > 15 {
+                let more_text = format!("... +{} more in Dashboard", games.len() - 15);
+                AppendMenuW(games_submenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&more_text).as_ptr());
+            }
+        }
+        let games_menu_label = format!("🎮 Discovered Games ({})", games.len());
+        AppendMenuW(hmenu, MF_POPUP, games_submenu as usize, to_wide_chars(&games_menu_label).as_ptr());
+
+        let backup_all_label = format!("💾 Backup All Games ({}) Now", games.len());
+        AppendMenuW(hmenu, MF_STRING, ID_BACKUP_ALL, to_wide_chars(&backup_all_label).as_ptr());
+
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
+        // ── Google Drive Section ──
+        let gdrive_label = if drive_status.google_drive_running {
+            to_wide_chars("☁️ Google Drive: Running")
+        } else if drive_status.google_drive_installed {
+            to_wide_chars("☁️ Google Drive: Stopped")
+        } else {
+            to_wide_chars("☁️ Google Drive: Not Installed")
         };
         AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_GDRIVE_STATUS, gdrive_label.as_ptr());
 
         if !drive_status.google_drive_running && drive_status.google_drive_installed {
-            let launch_text = to_wide_chars("Launch Google Drive");
+            let launch_text = to_wide_chars("🚀 Launch Google Drive");
             AppendMenuW(hmenu, MF_STRING, ID_LAUNCH_GDRIVE, launch_text.as_ptr());
         }
 
-        let dir_status = if drive_status.backup_dir_exists {
-            format!("Backup: {}", cfg.backup_directory.display())
-        } else {
-            format!("Backup: {} (missing)", cfg.backup_directory.display())
-        };
-        let dir_text = to_wide_chars(&dir_status);
-        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, dir_text.as_ptr());
-
-        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
-
-        // ── Actions ──
-        let dash_text = to_wide_chars("Open Dashboard");
-        AppendMenuW(hmenu, MF_STRING, ID_OPEN_DASHBOARD, dash_text.as_ptr());
-
-        let backup_text = to_wide_chars("Backup All Game Saves Now");
-        AppendMenuW(hmenu, MF_STRING, ID_BACKUP_ALL, backup_text.as_ptr());
-
-        let folder_text = to_wide_chars("Open Backup Folder");
+        let folder_text = to_wide_chars("📂 Open Backup Folder (Google Drive)");
         AppendMenuW(hmenu, MF_STRING, ID_OPEN_BACKUP_FOLDER, folder_text.as_ptr());
 
         AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
 
-        let test_text = to_wide_chars("Test Achievement Alert");
+        // ── Achievements & Dashboard ──
+        let ach_count_text = format!("🏆 Achievements: {} Unlocked", achievements.len());
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&ach_count_text).as_ptr());
+
+        let test_text = to_wide_chars("🔔 Test Achievement Alert");
         AppendMenuW(hmenu, MF_STRING, ID_TEST_ACHIEVEMENT, test_text.as_ptr());
 
-        let settings_text = to_wide_chars("Settings (Dashboard)");
+        let dash_text = to_wide_chars("🌐 Open Web Dashboard");
+        AppendMenuW(hmenu, MF_STRING, ID_OPEN_DASHBOARD, dash_text.as_ptr());
+
+        let settings_text = to_wide_chars("⚙️ Settings & Schedule");
         AppendMenuW(hmenu, MF_STRING, ID_SETTINGS, settings_text.as_ptr());
 
         AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
 
-        let exit_text = to_wide_chars("Exit Sager");
+        let exit_text = to_wide_chars("❌ Exit Sager");
         AppendMenuW(hmenu, MF_STRING, ID_EXIT, exit_text.as_ptr());
 
         SetForegroundWindow(hwnd);
@@ -292,14 +474,17 @@ pub unsafe extern "system" fn tray_window_proc(
                     show_context_menu(hwnd);
                 }
                 WM_LBUTTONUP => {
-                    // Left-click: open the backup folder directly
+                    // Left-click: open preferred backup location
                     let cfg = config::load_config();
                     if cfg.backup_directory.exists() {
                         let _ = open::that(&cfg.backup_directory);
                     } else {
-                        // Backup dir doesn't exist, open dashboard instead
                         let _ = open::that("http://127.0.0.1:3939");
                     }
+                }
+                WM_LBUTTONDBLCLK => {
+                    // Double left-click: open web dashboard
+                    let _ = open::that("http://127.0.0.1:3939");
                 }
                 _ => {}
             }
@@ -367,7 +552,33 @@ pub unsafe extern "system" fn tray_window_proc(
                     handle.remove_icon();
                     PostQuitMessage(0);
                 }
-                _ => {}
+                _ => {
+                    // Check if it's an individual game backup command from the submenu
+                    if cmd >= ID_GAME_BACKUP_BASE && cmd < ID_GAME_BACKUP_BASE + 100 {
+                        let game_idx = cmd - ID_GAME_BACKUP_BASE;
+                        let cfg = config::load_config();
+                        let games = crate::backup::SaveScanner::scan_all(&cfg);
+                        if let Some(game) = games.get(game_idx) {
+                            let handle = TrayHandle(hwnd as isize);
+                            match crate::backup::SaveArchiver::backup_game(&game.name, &game.source_path, &cfg) {
+                                Ok(info) => {
+                                    handle.show_balloon_notification(
+                                        "Game Backup Complete",
+                                        &format!("{} backed up ({}) to Google Drive!", game.name, info.file_name),
+                                        cfg.sound_enabled,
+                                    );
+                                }
+                                Err(e) => {
+                                    handle.show_balloon_notification(
+                                        "Backup Failed",
+                                        &format!("Failed to backup {}: {}", game.name, e),
+                                        cfg.sound_enabled,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
             }
             0
         }

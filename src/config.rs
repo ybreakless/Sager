@@ -25,6 +25,33 @@ pub struct SagerConfig {
     pub web_port: u16,
     #[serde(default = "default_google_drive_exe")]
     pub google_drive_exe: Option<PathBuf>,
+    #[serde(default = "default_backups_per_day")]
+    pub backups_per_day: Option<u32>,
+}
+
+fn default_backups_per_day() -> Option<u32> {
+    Some(24)
+}
+
+impl SagerConfig {
+    pub fn get_backups_per_day(&self) -> u32 {
+        if let Some(bpd) = self.backups_per_day {
+            if bpd > 0 {
+                return bpd;
+            }
+        }
+        if self.auto_backup_interval_minutes > 0 {
+            (1440 / self.auto_backup_interval_minutes).max(1) as u32
+        } else {
+            24
+        }
+    }
+
+    pub fn set_backups_per_day(&mut self, times: u32) {
+        let valid_times = times.clamp(1, 144);
+        self.backups_per_day = Some(valid_times);
+        self.auto_backup_interval_minutes = (1440 / valid_times as u64).max(1);
+    }
 }
 
 fn default_google_drive_exe() -> Option<PathBuf> {
@@ -51,6 +78,7 @@ impl Default for SagerConfig {
             auto_backup_interval_minutes: 60,
             web_port: 3939,
             google_drive_exe: gdrive_exe,
+            backups_per_day: Some(24),
         }
     }
 }
