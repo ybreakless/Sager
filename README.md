@@ -47,12 +47,21 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
   - Preferred Game Launcher selector (Goldberg, Steam, Project Lightning, Custom)
   - In-Launcher Achievement Sync (Toggle Switch)
 
-### 🏆 2. Unlocked vs Locked Achievements Matrix ("Overall Situation")
-- **Full Catalog Discovery**: Automatically scans and correlates full achievement catalogs from `steam_settings\achievements.json`, Steam app manifests, and Goldberg emulators.
+### 🏆 2. Authentic Steam In-Game Overlay, Sound & Achievement Matrix
+- **Official Steam Notification Audio (`deck_ui_achievement_toast.wav`)**: Embedded authentic Steam achievement unlock chime, played asynchronously in-memory on Windows with zero disk latency.
+- **Steam TopMost In-Game Overlay Toast**:
+  - Borderless, topmost overlay window styled identically to Steam (`#1b2838` charcoal navy, `#66c0f4` glowing cyan accent, bold white title, gold trophy badge).
+  - Designed specifically for PC gaming: uses `WS_EX_TOPMOST | WS_EX_NOACTIVATE` so it appears seamlessly over borderless and fullscreen games without stealing keyboard or controller input!
+- **Local Trophy Showcase & In-Game Replay**:
+  - Displays all unlocked trophies locally with exact unlock timestamps, descriptions, and launcher origin.
+  - Interactive `[ 🔔 Pop Overlay ]` button on each trophy to replay the in-game toast and authentic chime on demand.
+  - `[ 🎮 Open in Steam ]` button that launches the native Steam client achievement hub (`steam://open/achievements/<appid>`).
+- **Automatic Goldberg & Project Lightning Save Sync**:
+  - Automatically writes unlocked achievements to `%APPDATA%\Goldberg SteamEmu Saves\<AppID>\achievements.json` with timestamped records.
+  - Keeps local saves in `sager_achievements.json` for cross-PC restoration via Google Drive.
 - **Visual Progress Bar & Metrics**: Displays total achievements, unlocked count, locked count, and completion percentage (e.g. `LEGO Batman: 2 of 64 Unlocked (3.1%)`).
 - **Interactive Filter Pills**: Instantly toggle between `All`, `🏆 Unlocked`, and `🔒 Locked / Pending`.
 - **Real-Time Search Bar**: Search achievements across all games by title, description, or internal ID.
-- **Launcher Integration**: Choose which launcher format you use (Goldberg, Steam, Project Lightning), with the option to display and sync achievement status into the launcher.
 
 ### 💾 3. Deep Game Save Discovery & Cross-PC Cloud Sync
 - **23+ Detected Save Locations Out-of-the-Box**:

@@ -893,8 +893,8 @@ pub fn get_dashboard_html() -> &'static str {
                 <!-- 2. Achievement Sound Alerts -->
                 <div class="switch-row">
                     <div>
-                        <div class="switch-label">🔔 Achievement Audio Chime</div>
-                        <div class="switch-desc">Play satisfying alert sound on unlock</div>
+                        <div class="switch-label">🔔 Steam Achievement Sound (deck_ui)</div>
+                        <div class="switch-desc">Authentic Steam unlock chime (deck_ui_achievement_toast.wav)</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="switch-sound" onchange="toggleQuickSetting('sound_enabled', this.checked)">
@@ -905,8 +905,8 @@ pub fn get_dashboard_html() -> &'static str {
                 <!-- 3. Desktop Notifications -->
                 <div class="switch-row">
                     <div>
-                        <div class="switch-label">💬 Windows Tray Alerts</div>
-                        <div class="switch-desc">Pop balloon notifications for achievements</div>
+                        <div class="switch-label">💬 Steam TopMost In-Game Overlay</div>
+                        <div class="switch-desc">Sleek overlay appears over running games without losing focus</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="switch-notif" onchange="toggleQuickSetting('notifications_enabled', this.checked)">
@@ -1023,7 +1023,8 @@ pub fn get_dashboard_html() -> &'static str {
                             <!-- Populated dynamically -->
                         </select>
                     </div>
-                    <div style="display: flex; gap: 6px;">
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-sm" id="btn-open-steam-app" onclick="openCurrentGameInSteam()" style="background: rgba(102, 192, 244, 0.15); color: #66c0f4; border: 1px solid rgba(102, 192, 244, 0.4);">🎮 Open in Steam</button>
                         <button class="btn btn-sm btn-gold" onclick="triggerTestUnlock()">🔔 Test Alert</button>
                         <button class="btn btn-sm" onclick="loadAchievementsMatrix()">🔄 Refresh</button>
                     </div>
@@ -1123,8 +1124,8 @@ pub fn get_dashboard_html() -> &'static str {
                 <div class="switchboard-card">
                     <div class="card-header-sm">🧪 Interactive Test Suite</div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn" onclick="testSound()">🔊 Test Audio Chime</button>
-                        <button class="btn btn-gold" onclick="triggerTestUnlock()">🔔 Test Achievement Toast Alert</button>
+                        <button class="btn" onclick="testSound()">🔔 Test Steam Achievement Sound</button>
+                        <button class="btn btn-gold" onclick="triggerTestUnlock()">🏆 Test Steam In-Game TopMost Overlay & Chime</button>
                         <button class="btn" onclick="runWriteSpeedTest()">⚡ Run Google Drive Write Benchmark</button>
                         <button class="btn" onclick="runFullDiagnostics()">🔬 Run Full System Diagnostics</button>
                     </div>
@@ -1430,6 +1431,9 @@ pub fn get_dashboard_html() -> &'static str {
             container.innerHTML = pool.map(a => {
                 const isUnlocked = a.unlocked;
                 const timeStr = a.unlock_time ? new Date(a.unlock_time * 1000).toLocaleString() : '';
+                const safeTitle = (a.title || '').replace(/'/g, "\\'");
+                const safeGame = (a.game_name || game.game_name || '').replace(/'/g, "\\'");
+                const safeDesc = (a.description || '').replace(/'/g, "\\'");
                 return `
                     <div class="matrix-card ${isUnlocked ? 'unlocked' : 'locked'}">
                         <div class="ach-card-icon">${isUnlocked ? '🏆' : '🔒'}</div>
@@ -1441,9 +1445,12 @@ pub fn get_dashboard_html() -> &'static str {
                                 </span>
                             </div>
                             <div class="ach-card-desc">${a.description || 'Secret achievement objective'}</div>
-                            <div class="ach-card-footer">
+                            <div class="ach-card-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                                 <span>${isUnlocked ? `Earned: ${timeStr}` : 'Objective not yet completed'}</span>
-                                <span class="ach-launcher-badge">${a.launcher || game.launcher}</span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    ${isUnlocked ? `<button class="btn btn-sm btn-gold" style="padding: 2px 8px; font-size: 11px;" onclick="replaySteamAlert('${safeTitle}', '${safeGame}', '${safeDesc}')">🔔 Pop Overlay</button>` : ''}
+                                    <span class="ach-launcher-badge">${a.launcher || game.launcher}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1671,36 +1678,85 @@ pub fn get_dashboard_html() -> &'static str {
         // ── Interactive Tests ──
         async function testSound() {
             try {
+                const audio = document.getElementById('steam-chime');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                }
                 await fetch('/api/test-sound', { method: 'POST' });
-                showToast('🔊 Audio chime played!');
-                logToConsole('Played Windows audio alert chime (MB_ICONASTERISK)', 'PASS');
+                showToast('🔔 Steam achievement sound played (deck_ui_achievement_toast.wav)!');
+                logToConsole('Played authentic Steam achievement unlock chime (deck_ui_achievement_toast.wav)', 'PASS');
             } catch (e) { console.error(e); }
         }
 
         async function triggerTestUnlock() {
             try {
+                const audio = document.getElementById('steam-chime');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                }
                 const res = await fetch('/api/achievements/test', { method: 'POST' });
                 const d = await res.json();
                 showToast('🔔 ' + d.message);
-                logToConsole('Triggered Sager Master test alert', 'PASS');
+                logToConsole('Triggered Steam In-Game TopMost Overlay & Chime', 'PASS');
                 setTimeout(loadAchievementsMatrix, 500);
             } catch (e) { console.error(e); }
         }
 
+        async function replaySteamAlert(title, game_name, description) {
+            try {
+                const audio = document.getElementById('steam-chime');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                }
+                await fetch('/api/achievements/replay-overlay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, game_name, description })
+                });
+                showToast(`🔔 Steam in-game overlay popped for '${title}'!`);
+                logToConsole(`Displayed Steam in-game topmost overlay & chime for '${title}' in ${game_name}`, 'PASS');
+            } catch (e) { console.error(e); }
+        }
+
+        async function openCurrentGameInSteam() {
+            const game = allAchievementSummaries[selectedGameIndex];
+            if (!game || !game.app_id || game.app_id === '0') {
+                showToast('⚠️ No Steam AppID associated with this game');
+                return;
+            }
+            try {
+                await fetch('/api/achievements/open-steam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app_id: game.app_id })
+                });
+                showToast(`🚀 Opening Steam Community achievements for AppID ${game.app_id}...`);
+                logToConsole(`Launching Steam achievement interface: steam://open/achievements/${game.app_id}`, 'INFO');
+            } catch (e) { console.error(e); }
+        }
+
         async function simulateCustomAchievement() {
-            const game = document.getElementById('sim-game').value.trim() || 'LEGO Batman';
-            const title = document.getElementById('sim-title').value.trim() || 'Trophy Unlocked!';
-            const desc = document.getElementById('sim-desc').value.trim() || 'Custom test';
+            const game = document.getElementById('sim-game').value.trim() || 'LEGO Batman: Legacy of the Dark Knight';
+            const title = document.getElementById('sim-title').value.trim() || 'Gotham Guardian';
+            const desc = document.getElementById('sim-desc').value.trim() || 'Defeated all villains in Gotham City';
 
             try {
+                const audio = document.getElementById('steam-chime');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                }
                 const res = await fetch('/api/test/custom-achievement', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ game_name: game, title, description: desc })
+                    body: JSON.stringify({ game_name: game, title, description: desc, app_id: '2215200' })
                 });
                 const d = await res.json();
                 showToast('🔔 ' + d.message);
-                logToConsole(`Alert delivered: "${title}" in "${game}"`, 'PASS');
+                logToConsole(`Steam in-game overlay popped: "${title}" in "${game}"`, 'PASS');
                 setTimeout(loadAchievementsMatrix, 500);
             } catch (e) { console.error(e); }
         }
@@ -1899,6 +1955,7 @@ pub fn get_dashboard_html() -> &'static str {
             loadSystemStatus();
         });
     </script>
+    <audio id="steam-chime" preload="auto" src="/api/sound/steam-achievement.wav"></audio>
 </body>
 </html>
 "#

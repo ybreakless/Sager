@@ -425,16 +425,59 @@ impl WebServer {
                 }
 
                 if url == "/api/test-sound" && method == Method::Post {
-                    #[link(name = "user32")]
-                    extern "system" {
-                        fn MessageBeep(uType: u32) -> i32;
-                    }
-                    unsafe {
-                        MessageBeep(0x00000040); // MB_ICONASTERISK
-                    }
-                    let resp_body = json!({ "success": true, "message": "Audio chime played" });
+                    crate::audio::play_steam_achievement_sound();
+                    let resp_body = json!({
+                        "success": true,
+                        "message": "Steam achievement audio chime played (deck_ui_achievement_toast.wav)"
+                    });
                     let resp = Response::from_string(resp_body.to_string())
                         .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/sound/steam-achievement.wav" && method == Method::Get {
+                    let audio_header = Header::from_bytes(&b"Content-Type"[..], &b"audio/wav"[..]).unwrap();
+                    let resp = Response::from_data(crate::audio::STEAM_ACHIEVEMENT_WAV).with_header(audio_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/achievements/replay-overlay" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+                    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
+
+                    let game_name = parsed.get("game_name").and_then(|v| v.as_str()).unwrap_or("Steam Game");
+                    let title = parsed.get("title").and_then(|v| v.as_str()).unwrap_or("Achievement Unlocked!");
+                    let desc = parsed.get("description").and_then(|v| v.as_str()).unwrap_or("");
+
+                    crate::audio::play_steam_achievement_sound();
+                    crate::overlay::show_steam_overlay(game_name, title, desc);
+
+                    let resp_body = json!({
+                        "success": true,
+                        "message": format!("Steam in-game overlay displayed for '{}'", title)
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/achievements/open-steam" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+                    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
+                    let app_id = parsed.get("app_id").and_then(|v| v.as_str()).unwrap_or("2215200");
+
+                    let steam_url = format!("steam://open/achievements/{}", app_id);
+                    let _ = open::that(&steam_url);
+
+                    let resp_body = json!({
+                        "success": true,
+                        "message": format!("Launched Steam achievements: {}", steam_url)
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
                     let _ = req.respond(resp);
                     continue;
                 }
@@ -571,9 +614,10 @@ impl WebServer {
                     let _ = req.as_reader().read_to_string(&mut body);
                     let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
 
-                    let game_name = parsed.get("game_name").and_then(|v| v.as_str()).unwrap_or("Project Lightning / Steam");
-                    let title = parsed.get("title").and_then(|v| v.as_str()).unwrap_or("Achievement Unlocked!");
-                    let desc = parsed.get("description").and_then(|v| v.as_str()).unwrap_or("Sager test achievement verified!");
+                    let game_name = parsed.get("game_name").and_then(|v| v.as_str()).unwrap_or("LEGO Batman: Legacy of the Dark Knight");
+                    let title = parsed.get("title").and_then(|v| v.as_str()).unwrap_or("Dynamic Duo");
+                    let desc = parsed.get("description").and_then(|v| v.as_str()).unwrap_or("Defeat 50 enemies as Batman and Robin in co-op.");
+                    let app_id = parsed.get("app_id").and_then(|v| v.as_str()).unwrap_or("2215200");
 
                     let now = chrono::Utc::now().timestamp();
                     let notif = AchievementNotification {
@@ -587,13 +631,13 @@ impl WebServer {
                     let ach = Achievement {
                         id: format!("test_ach_{}", now),
                         game_name: game_name.to_string(),
-                        app_id: Some("0".to_string()),
+                        app_id: Some(app_id.to_string()),
                         title: title.to_string(),
                         description: desc.to_string(),
                         unlocked: true,
                         unlock_time: Some(now),
                         icon_path: None,
-                        launcher: Some("Custom Simulator".to_string()),
+                        launcher: Some("Steam / Project Lightning".to_string()),
                         hidden: false,
                     };
                     crate::achievements::record_unlocked_achievement(&ach);

@@ -16,7 +16,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DispatchMessageW,
     GetCursorPos, GetMessageW, LoadIconW, PostQuitMessage, RegisterClassW,
     SetForegroundWindow, TrackPopupMenu, TranslateMessage, IDI_APPLICATION,
-    MB_ICONASTERISK, MF_GRAYED, MF_SEPARATOR, MF_STRING, TPM_BOTTOMALIGN, TPM_RIGHTBUTTON,
+    MF_GRAYED, MF_SEPARATOR, MF_STRING, TPM_BOTTOMALIGN, TPM_RIGHTBUTTON,
     WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSW,
     WS_OVERLAPPEDWINDOW,
 };
@@ -35,7 +35,6 @@ struct IconInfo {
 
 #[link(name = "user32")]
 extern "system" {
-    fn MessageBeep(uType: u32) -> i32;
     fn CreateIconIndirect(piconinfo: *const IconInfo) -> isize;
     fn DestroyIcon(hicon: isize) -> i32;
     fn ShowWindow(hWnd: HWND, nCmdShow: i32) -> i32;
@@ -268,7 +267,7 @@ impl TrayHandle {
             Shell_NotifyIconW(NIM_MODIFY, &nid);
 
             if sound {
-                MessageBeep(MB_ICONASTERISK);
+                crate::audio::play_steam_achievement_sound();
             }
         }
     }
@@ -397,7 +396,17 @@ pub fn start_notification_listener(
                 (cfg.notifications_enabled, cfg.sound_enabled)
             };
 
+            if sound_enabled {
+                crate::audio::play_steam_achievement_sound();
+            }
+
             if notifications_enabled {
+                crate::overlay::show_steam_overlay(
+                    &notif.game_name,
+                    &notif.title,
+                    &notif.description,
+                );
+
                 let title = format!("Achievement Unlocked! ({})", notif.game_name);
                 let message = if notif.description.is_empty() {
                     notif.title
@@ -405,7 +414,7 @@ pub fn start_notification_listener(
                     format!("{}: {}", notif.title, notif.description)
                 };
 
-                tray_handle.show_balloon_notification(&title, &message, sound_enabled);
+                tray_handle.show_balloon_notification(&title, &message, false);
             }
         }
     });
@@ -485,11 +494,24 @@ fn show_context_menu(hwnd: HWND) {
 
         AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
 
-        // ── Achievements & Dashboard ──
-        let ach_count_text = format!("🏆 Achievements: {} Unlocked", achievements.len());
-        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&ach_count_text).as_ptr());
+        // ── Achievements & Trophies Submenu ──
+        let ach_submenu = CreatePopupMenu();
+        if achievements.is_empty() {
+            AppendMenuW(ach_submenu, MF_STRING | MF_GRAYED, 0, to_wide_chars("(No achievements unlocked yet)").as_ptr());
+        } else {
+            for ach in achievements.iter().take(6) {
+                let item_text = format!("🏆 {} ({})", ach.title, ach.game_name);
+                AppendMenuW(ach_submenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&item_text).as_ptr());
+            }
+            if achievements.len() > 6 {
+                let more_text = format!("... +{} more in Dashboard", achievements.len() - 6);
+                AppendMenuW(ach_submenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&more_text).as_ptr());
+            }
+        }
+        let ach_menu_label = format!("🏆 Unlocked Trophies ({})", achievements.len());
+        AppendMenuW(hmenu, MF_POPUP, ach_submenu as usize, to_wide_chars(&ach_menu_label).as_ptr());
 
-        let test_text = to_wide_chars("🔔 Test Achievement Alert");
+        let test_text = to_wide_chars("🔔 Test Steam In-Game Overlay & Sound");
         AppendMenuW(hmenu, MF_STRING, ID_TEST_ACHIEVEMENT, test_text.as_ptr());
 
         let dash_text = to_wide_chars("🌐 Open Web Dashboard");
@@ -583,10 +605,19 @@ pub unsafe extern "system" fn tray_window_proc(
                 }
                 ID_TEST_ACHIEVEMENT => {
                     let handle = TrayHandle(hwnd as isize);
+                    let cfg = config::load_config();
+                    if cfg.sound_enabled {
+                        crate::audio::play_steam_achievement_sound();
+                    }
+                    crate::overlay::show_steam_overlay(
+                        "LEGO Batman: Legacy of the Dark Knight",
+                        "Dynamic Duo (Steam Overlay)",
+                        "Defeat 50 enemies as Batman and Robin in co-op.",
+                    );
                     handle.show_balloon_notification(
-                        "Achievement Unlocked! (Test)",
-                        "Sager Master: Achievement tracking & save backup working!",
-                        true,
+                        "Steam Achievement Unlocked! (Overlay Test)",
+                        "Dynamic Duo: Defeat 50 enemies as Batman and Robin in co-op.",
+                        false,
                     );
                 }
                 ID_LAUNCH_GDRIVE => {

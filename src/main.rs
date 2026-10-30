@@ -1,6 +1,8 @@
 pub mod achievements;
+pub mod audio;
 pub mod backup;
 pub mod config;
+pub mod overlay;
 pub mod tray;
 pub mod web;
 
