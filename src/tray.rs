@@ -38,6 +38,62 @@ extern "system" {
     fn MessageBeep(uType: u32) -> i32;
     fn CreateIconIndirect(piconinfo: *const IconInfo) -> isize;
     fn DestroyIcon(hicon: isize) -> i32;
+    fn ShowWindow(hWnd: HWND, nCmdShow: i32) -> i32;
+    fn IsWindowVisible(hWnd: HWND) -> i32;
+}
+
+#[link(name = "kernel32")]
+extern "system" {
+    fn GetConsoleWindow() -> HWND;
+}
+
+pub const SW_HIDE: i32 = 0;
+pub const SW_SHOW: i32 = 5;
+
+pub fn hide_console() -> bool {
+    unsafe {
+        let hwnd = GetConsoleWindow();
+        if !hwnd.is_null() {
+            ShowWindow(hwnd, SW_HIDE);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub fn show_console() -> bool {
+    unsafe {
+        let hwnd = GetConsoleWindow();
+        if !hwnd.is_null() {
+            ShowWindow(hwnd, SW_SHOW);
+            SetForegroundWindow(hwnd);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub fn is_console_visible() -> bool {
+    unsafe {
+        let hwnd = GetConsoleWindow();
+        if !hwnd.is_null() {
+            IsWindowVisible(hwnd) != 0
+        } else {
+            false
+        }
+    }
+}
+
+pub fn toggle_console() -> bool {
+    if is_console_visible() {
+        hide_console();
+        false
+    } else {
+        show_console();
+        true
+    }
 }
 
 #[link(name = "gdi32")]
@@ -64,6 +120,8 @@ pub const ID_SETTINGS: usize = 1006;
 pub const ID_EXIT: usize = 1007;
 pub const ID_LAUNCH_GDRIVE: usize = 1008;
 pub const ID_GDRIVE_STATUS: usize = 1009;
+pub const ID_TOGGLE_CONSOLE: usize = 1010;
+pub const ID_RUN_BACKGROUND: usize = 1011;
 pub const ID_GAME_BACKUP_BASE: usize = 2000;
 
 pub fn to_wide_chars(s: &str) -> Vec<u16> {
@@ -442,6 +500,17 @@ fn show_context_menu(hwnd: HWND) {
 
         AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
 
+        // ── Window & Background Mode ──
+        if is_console_visible() {
+            let bg_text = to_wide_chars("🕶️ Run in Background (Hide Console)");
+            AppendMenuW(hmenu, MF_STRING, ID_RUN_BACKGROUND, bg_text.as_ptr());
+        } else {
+            let show_text = to_wide_chars("👁️ Make Console Appear (Show Window)");
+            AppendMenuW(hmenu, MF_STRING, ID_TOGGLE_CONSOLE, show_text.as_ptr());
+        }
+
+        AppendMenuW(hmenu, MF_SEPARATOR, 0, null());
+
         let exit_text = to_wide_chars("❌ Exit Sager");
         AppendMenuW(hmenu, MF_STRING, ID_EXIT, exit_text.as_ptr());
 
@@ -540,6 +609,24 @@ pub unsafe extern "system" fn tray_window_proc(
                             );
                         }
                     }
+                }
+                ID_RUN_BACKGROUND => {
+                    hide_console();
+                    let handle = TrayHandle(hwnd as isize);
+                    handle.show_balloon_notification(
+                        "Sager Running in Background",
+                        "Sager is now operating silently in your system tray.",
+                        false,
+                    );
+                }
+                ID_TOGGLE_CONSOLE => {
+                    show_console();
+                    let handle = TrayHandle(hwnd as isize);
+                    handle.show_balloon_notification(
+                        "Sager Console Restored",
+                        "Console window made visible.",
+                        false,
+                    );
                 }
                 ID_EXIT => {
                     let handle = TrayHandle(hwnd as isize);

@@ -664,6 +664,28 @@ pub fn get_dashboard_html() -> &'static str {
             background: linear-gradient(135deg, #fbbf24, #f59e0b);
         }
 
+        .btn-bg-action {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .btn-bg-action:hover {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            box-shadow: 0 0 12px var(--success-glow);
+        }
+
+        .btn-appear-action {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .btn-appear-action:hover {
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
         .form-input {
             width: 100%;
             background-color: var(--bg-input);
@@ -768,6 +790,18 @@ pub fn get_dashboard_html() -> &'static str {
         </div>
 
         <div class="header-controls">
+            <!-- Run in Background Button -->
+            <button class="btn btn-sm btn-bg-action" id="btn-run-bg" onclick="runInBackground()" title="Hide console window & run silently in Windows background">
+                <span>🛡️</span>
+                <span>Run in Background</span>
+            </button>
+
+            <!-- Make Console Appear Button -->
+            <button class="btn btn-sm btn-appear-action" id="btn-make-appear" onclick="makeConsoleAppear()" title="Make Sager console window appear on desktop">
+                <span>👁️</span>
+                <span>Make Appear</span>
+            </button>
+
             <!-- View Mode Switcher: Tray Companion vs Studio View -->
             <div class="view-switcher">
                 <button class="view-btn active" id="btn-view-tray" onclick="setViewMode('tray')">📱 Tray</button>
@@ -907,6 +941,42 @@ pub fn get_dashboard_html() -> &'static str {
                         <input type="checkbox" id="switch-launcher-sync" onchange="toggleQuickSetting('show_in_launcher', this.checked)">
                         <span class="slider"></span>
                     </label>
+                </div>
+            </div>
+
+            <!-- 🕶️ Background Execution & Windows Visibility Controls -->
+            <div class="switchboard-card" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(145deg, #10192e 0%, #15223c 100%);">
+                <div class="card-header-sm">
+                    <span style="color: var(--primary);">🕶️ Background Execution & Window Controls</span>
+                    <span id="console-live-badge" class="cloud-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary);">Tray Active</span>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-gold" style="flex: 1; min-width: 170px; justify-content: center; padding: 10px 14px;" onclick="runInBackground()">
+                        <span>🛡️</span>
+                        <span>Run in Background (Hide Window)</span>
+                    </button>
+
+                    <button class="btn" style="flex: 1; min-width: 170px; justify-content: center; padding: 10px 14px; background: linear-gradient(135deg, #3b82f6, #6366f1);" onclick="makeConsoleAppear()">
+                        <span>👁️</span>
+                        <span>Make Console Appear</span>
+                    </button>
+                </div>
+
+                <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
+                    💡 <strong>Run in Background:</strong> Hides the console terminal window so Sager operates silently in your Windows system tray. Cloud save sync and achievement tracking will run 24/7 in the background.<br>
+                    💡 <strong>Make Console Appear:</strong> Restores the live console window to your desktop so you can see live Rust engine logs.
+                </div>
+
+                <!-- Windows Startup Toggle -->
+                <div class="switch-row" style="padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="switch-label">🚀 Windows Startup (Silent Auto-Run)</div>
+                        <div class="switch-desc">Launch Sager automatically in silent background mode on PC boot</div>
+                    </div>
+                    <button class="btn btn-sm" id="btn-toggle-startup" onclick="toggleWindowsStartup()" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4);">
+                        ● Active (Boot ON)
+                    </button>
                 </div>
             </div>
 
@@ -1127,6 +1197,23 @@ pub fn get_dashboard_html() -> &'static str {
 
     <!-- Toast Notification Banner -->
     <div id="toast" class="toast-msg"></div>
+
+    <!-- Background Confirmation Modal -->
+    <div id="bg-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: #111a2f; border: 1px solid #38bdf8; border-radius: 14px; padding: 26px; max-width: 440px; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,0.8); animation: slideUp 0.3s ease;">
+            <div style="font-size: 42px; margin-bottom: 8px;">🛡️</div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff;">Sager is Running in the Background!</div>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 12px 0 20px 0; line-height: 1.5;">
+                The console window has been hidden.<br>
+                Sager is now operating silently in your <strong>Windows System Tray</strong> (near your clock).<br><br>
+                Your game saves are automatically backed up to Google Drive and achievements will pop real-time alerts.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-gold" onclick="makeConsoleAppear()">👁️ Make Console Appear</button>
+                <button class="btn" onclick="dismissBgModal()">Got It, Keep in Tray</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <!-- JAVASCRIPT CONTROLLER                                          -->
@@ -1707,6 +1794,99 @@ pub fn get_dashboard_html() -> &'static str {
             } catch (e) { console.error(e); }
         }
 
+        // ── Background & Visibility Handlers ──
+        async function runInBackground() {
+            showToast('🛡️ Sending Sager to background tray...');
+            logToConsole('Requesting background silent execution (hiding console window)...', 'INFO');
+            try {
+                const res = await fetch('/api/system/run-background', { method: 'POST' });
+                const d = await res.json();
+                logToConsole(d.message, 'PASS');
+                const modal = document.getElementById('bg-modal');
+                if (modal) modal.style.display = 'flex';
+                updateConsoleVisibilityBadge(false);
+            } catch (e) {
+                logToConsole('Error sending to background: ' + e, 'ERROR');
+            }
+        }
+
+        async function makeConsoleAppear() {
+            showToast('👁️ Restoring console window to desktop...');
+            logToConsole('Requesting console window restore to foreground...', 'INFO');
+            try {
+                const res = await fetch('/api/system/make-appear', { method: 'POST' });
+                const d = await res.json();
+                showToast('✅ ' + d.message);
+                logToConsole(d.message, 'PASS');
+                dismissBgModal();
+                updateConsoleVisibilityBadge(true);
+            } catch (e) {
+                logToConsole('Error restoring console: ' + e, 'ERROR');
+            }
+        }
+
+        async function toggleWindowsStartup() {
+            try {
+                const res = await fetch('/api/system/toggle-startup', { method: 'POST' });
+                const d = await res.json();
+                showToast(d.message);
+                logToConsole(d.message, d.installed ? 'PASS' : 'WARN');
+                updateStartupButton(d.installed);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function dismissBgModal() {
+            const modal = document.getElementById('bg-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updateStartupButton(installed) {
+            const btn = document.getElementById('btn-toggle-startup');
+            if (!btn) return;
+            if (installed) {
+                btn.textContent = '● Active (Boot ON)';
+                btn.style.background = 'rgba(16, 185, 129, 0.15)';
+                btn.style.color = 'var(--success)';
+                btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            } else {
+                btn.textContent = '○ Disabled';
+                btn.style.background = 'rgba(239, 68, 68, 0.15)';
+                btn.style.color = 'var(--danger)';
+                btn.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            }
+        }
+
+        function updateConsoleVisibilityBadge(visible) {
+            const badge = document.getElementById('console-live-badge');
+            if (!badge) return;
+            if (visible) {
+                badge.textContent = 'Console: Visible';
+                badge.style.background = 'rgba(251, 191, 36, 0.15)';
+                badge.style.color = 'var(--gold)';
+            } else {
+                badge.textContent = 'Tray: Silent Background';
+                badge.style.background = 'rgba(56, 189, 248, 0.15)';
+                badge.style.color = 'var(--primary)';
+            }
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const d = await res.json();
+                if (d.startup_installed !== undefined) {
+                    updateStartupButton(d.startup_installed);
+                }
+                if (d.console_visible !== undefined) {
+                    updateConsoleVisibilityBadge(d.console_visible);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         // ── Initialization ──
         window.addEventListener('DOMContentLoaded', () => {
             const savedMode = localStorage.getItem('sager_view_mode') || 'tray';
@@ -1716,6 +1896,7 @@ pub fn get_dashboard_html() -> &'static str {
             loadDriveStatus();
             loadGames();
             loadAchievementsMatrix();
+            loadSystemStatus();
         });
     </script>
 </body>

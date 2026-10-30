@@ -33,6 +33,12 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
 - **Dual View Modes**:
   - `📱 Tray Mode`: Ultra-compact (480px) widget view inspired by ProtonVPN, anchored for quick status checks, one-click backups, and instant toggle switches.
   - `🖥️ Studio Mode`: Widescreen responsive desktop suite for in-depth save exploration, restore operations, and diagnostics.
+- **Run in Background & Make Appear Controls**:
+  - **Header & Switchboard Buttons**: Instant `[ 🛡️ Run in Background ]` button hides the console window into the tray with confirmation modal; `[ 👁️ Make Appear ]` restores console and UI to the foreground.
+  - **Dynamic Tray Menu Options**: Right-click tray menu dynamically toggles between `🕶️ Run in Background (Hide Console)` and `👁️ Make Console Appear (Show Window)`.
+  - **Silent CLI Flags**: Launch with `sager.exe --background` (or `--silent`, `-b`, `--hide`) to boot immediately into the system tray without any console window popup.
+  - **One-Click Windows Boot Toggle**: Direct switch in the companion view to enable or disable automatic silent startup (`%APPDATA%\...\Startup\Sager.lnk`).
+  - **Helper Scripts**: `launch_background.bat` (silent launch) and `make_appear.bat` (instant reveal and dashboard launch).
 - **One-Click Hero Action**: Giant `BACKUP ALL GAMES TO GOOGLE DRIVE` button with status animation.
 - **Quick Controls Switchboard**:
   - Auto-Backup Saves (Toggle Switch)
@@ -163,21 +169,32 @@ target\release\sager.exe
 ### Launching Sager
 Run the release binary directly or start it via PowerShell:
 ```powershell
+# Standard launch with console & tray
 .\target\release\sager.exe
+
+# Run silently in background (hides console window immediately)
+.\target\release\sager.exe --background
+
+# Launch and automatically open web companion UI
+.\target\release\sager.exe --ui
 ```
-The application will minimize into the Windows System Tray (near the clock).
+
+You can also use the included 1-click batch scripts:
+- `launch_background.bat`: Launches Sager silently in the Windows system tray.
+- `make_appear.bat`: Restores the console window and brings up the web companion.
+- `launch_dashboard.bat`: Starts Sager and opens the browser interface.
 
 ---
 
-## ⚡ Windows Startup Integration
+## ⚡ Background Execution & Windows Startup
 
-To have Sager automatically launch silently whenever Windows starts:
-
-1. Run the included PowerShell startup helper script:
+- **Run in Background**: Click `[ 🛡️ Run in Background ]` in the dashboard header or right-click the tray icon and select `🕶️ Run in Background (Hide Console)`.
+- **Make Appear**: Click `[ 👁️ Make Appear ]` or run `make_appear.bat` to restore the console window and bring the UI forward.
+- **Windows Boot**: Toggle the `🚀 Windows Startup: Active (Boot ON)` button directly inside the web companion interface, or run:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install_startup.ps1
 ```
-This creates a shortcut in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk` pointing to your compiled `sager.exe`.
+This manages the startup shortcut in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk` with `--background` mode.
 
 ---
 

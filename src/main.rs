@@ -31,6 +31,11 @@ fn main() {
 
     let args: Vec<String> = std::env::args().collect();
     let open_ui_on_start = args.iter().any(|a| a == "--ui" || a == "--dashboard" || a == "-d");
+    let run_in_background = args.iter().any(|a| a == "--background" || a == "--silent" || a == "-b" || a == "--hide");
+
+    if run_in_background {
+        tray::hide_console();
+    }
 
     let shared_config = Arc::new(Mutex::new(config));
     let (tx, rx) = channel::<AchievementNotification>();

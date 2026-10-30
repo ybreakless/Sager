@@ -76,6 +76,15 @@ impl WebServer {
                     let achievements = load_achievements_history();
                     let drive = config::get_drive_status(&cfg);
 
+                    let startup_installed = if let Ok(appdata) = std::env::var("APPDATA") {
+                        PathBuf::from(appdata)
+                            .join(r"Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk")
+                            .exists()
+                    } else {
+                        false
+                    };
+                    let console_visible = crate::tray::is_console_visible();
+
                     let status = json!({
                         "version": "0.1.0",
                         "backup_dir": cfg.backup_directory.to_string_lossy(),
@@ -92,6 +101,8 @@ impl WebServer {
                         "preferred_launcher": cfg.preferred_launcher,
                         "show_in_launcher": cfg.show_in_launcher,
                         "tray_compact_mode": cfg.tray_compact_mode,
+                        "console_visible": console_visible,
+                        "startup_installed": startup_installed,
                     });
 
                     let resp =
@@ -448,6 +459,81 @@ impl WebServer {
                     continue;
                 }
 
+                if url == "/api/system/run-background" && method == Method::Post {
+                    crate::tray::hide_console();
+                    let now = chrono::Utc::now().timestamp();
+                    let notif = AchievementNotification {
+                        game_name: "Sager Companion".to_string(),
+                        title: "🛡️ Running in Background".to_string(),
+                        description: "Operating silently in your system tray. Save backups and achievements are actively monitored.".to_string(),
+                        unlock_time: now,
+                    };
+                    let _ = notifier_tx.send(notif);
+
+                    let resp_body = json!({
+                        "success": true,
+                        "message": "Sager is now running silently in the background.",
+                        "visible": false
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/system/make-appear" && method == Method::Post {
+                    crate::tray::show_console();
+                    let now = chrono::Utc::now().timestamp();
+                    let notif = AchievementNotification {
+                        game_name: "Sager Companion".to_string(),
+                        title: "👁️ Console Window Restored".to_string(),
+                        description: "Sager console window made visible in the foreground.".to_string(),
+                        unlock_time: now,
+                    };
+                    let _ = notifier_tx.send(notif);
+
+                    let resp_body = json!({
+                        "success": true,
+                        "message": "Sager console window made visible.",
+                        "visible": true
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/system/toggle-console" && method == Method::Post {
+                    let is_vis = crate::tray::toggle_console();
+                    let resp_body = json!({
+                        "success": true,
+                        "visible": is_vis,
+                        "message": if is_vis { "Console window made visible" } else { "Console window hidden to background" }
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/system/console-status" && method == Method::Get {
+                    let resp_body = json!({
+                        "visible": crate::tray::is_console_visible()
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/system/toggle-startup" && method == Method::Post {
+                    let (is_installed, msg) = toggle_windows_startup();
+                    let resp_body = json!({
+                        "success": true,
+                        "installed": is_installed,
+                        "message": msg
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 if url == "/api/test/write-test" && method == Method::Post {
                     let cfg = config_provider.lock().unwrap().clone();
                     let _ = std::fs::create_dir_all(&cfg.backup_directory);
@@ -601,5 +687,43 @@ impl WebServer {
                 let _ = req.respond(resp);
             }
         });
+    }
+}
+
+pub fn toggle_windows_startup() -> (bool, String) {
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        let lnk = PathBuf::from(&appdata)
+            .join(r"Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk");
+        if lnk.exists() {
+            let _ = std::fs::remove_file(&lnk);
+            (
+                false,
+                "Removed Sager from Windows Startup. It will not launch automatically on boot."
+                    .to_string(),
+            )
+        } else {
+            let exe_path = std::env::current_exe().unwrap_or_else(|_| {
+                PathBuf::from(r"C:\Mein Projekts\Sager\target\release\sager.exe")
+            });
+            let cur_dir = exe_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new(r"C:\Mein Projekts\Sager"));
+            let ps_cmd = format!(
+                "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{}'); $s.TargetPath = '{}'; $s.Arguments = '--background'; $s.WorkingDirectory = '{}'; $s.Save()",
+                lnk.to_string_lossy().replace('\'', "''"),
+                exe_path.to_string_lossy().replace('\'', "''"),
+                cur_dir.to_string_lossy().replace('\'', "''"),
+            );
+            let _ = std::process::Command::new("powershell")
+                .args(["-NoProfile", "-Command", &ps_cmd])
+                .output();
+            (
+                true,
+                "Added Sager to Windows Startup in silent background mode (--background)."
+                    .to_string(),
+            )
+        }
+    } else {
+        (false, "Failed to resolve APPDATA path".to_string())
     }
 }
