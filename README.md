@@ -228,8 +228,30 @@ Ready-to-use release packages are maintained in the [GitHub Releases](https://gi
 
 | Release Asset | Platform | Description | Size |
 |---|---|---|---|
-| [**`sager-v0.2.0-windows-x64.zip`**](releases/v0.2.0/sager-v0.2.0-windows-x64.zip) | Windows 10 / 11 (x64) | Standalone executable, tray companion, batch scripts & audio | ~1.5 MB |
-| [**`sager-companion-v0.2.0-android.zip`**](releases/v0.2.0/sager-companion-v0.2.0-android.zip) | Android 7.0+ (API 24+) | Native Android Jetpack Compose Companion App project | ~111 KB |
+| [**`sager.exe`**](releases/v0.2.0/sager.exe) | Windows 10 / 11 (x64) | **Direct Standalone Executable**: Native GUI subsystem, windowless tray execution & auto-startup | ~1.8 MB |
+| [**`SagerLauncher.exe`**](releases/v0.2.0/SagerLauncher.exe) | Windows 10 / 11 (x64) | **Minimal Setup & Launcher**: Downloads Sager from GitHub, installs to AppData, and configures Windows Startup with 1 click | ~390 KB |
+| [**`sager-companion-v0.2.0.apk`**](releases/v0.2.0/sager-companion-v0.2.0.apk) | Android 7.0+ (API 24+) | **Ready-to-Install Android APK**: Minimal black & white offline trophy vault with local home Wi-Fi sync | ~11.9 MB |
+| [**`sager-v0.2.0-windows-x64.zip`**](releases/v0.2.0/sager-v0.2.0-windows-x64.zip) | Windows 10 / 11 (x64) | Complete Windows release archive containing `sager.exe`, `SagerLauncher.exe`, batch scripts & audio | ~1.48 MB |
+| [**`sager-companion-v0.2.0-android.zip`**](releases/v0.2.0/sager-companion-v0.2.0-android.zip) | Android 7.0+ (API 24+) | Full Android Jetpack Compose companion source project | ~111 KB |
+
+---
+
+### 📥 Installing with SagerLauncher (Windows)
+1. Download [**`SagerLauncher.exe`**](releases/v0.2.0/SagerLauncher.exe) from GitHub Releases.
+2. Run `SagerLauncher.exe` — a minimal black & white control dialog will appear.
+3. Click **`⬇ Download & Install Sager`**:
+   - Automatically downloads or installs Sager into `%LOCALAPPDATA%\Sager\`.
+   - Creates a clean desktop shortcut.
+   - Automatically adds Sager to Windows Startup (`%APPDATA%\...\Startup\Sager.lnk`).
+4. Click **`🎮 Launch Sager`** to start gaming!
+
+---
+
+### 📱 Installing Sager Android Companion (Android)
+1. Download [**`sager-companion-v0.2.0.apk`**](releases/v0.2.0/sager-companion-v0.2.0.apk) on your Android phone.
+2. Tap the APK to install (enable "Install unknown apps" if prompted).
+3. Open the app to enjoy your minimal black & white offline trophy vault.
+4. When on your home Wi-Fi network, tap **`SYNC NOW`** to pull all unlocked achievements from your PC!
 
 ---
 

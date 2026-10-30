@@ -40,8 +40,11 @@ We are thrilled to announce **Sager v0.2.0**! This major release delivers the of
 
 | Asset | Platform | Description | Size |
 |---|---|---|---|
-| [**`sager-v0.2.0-windows-x64.zip`**](sager-v0.2.0-windows-x64.zip) | Windows 10 / 11 (x64) | Standalone executable, tray companion, batch launchers & assets | ~1.5 MB |
-| [**`sager-companion-v0.2.0-android.zip`**](sager-companion-v0.2.0-android.zip) | Android 7.0+ (API 24+) | Android Jetpack Compose Companion App project & offline vault | ~111 KB |
+| [**`sager.exe`**](sager.exe) | Windows 10 / 11 (x64) | Standalone direct executable (Zero terminal window, auto-tray) | ~1.8 MB |
+| [**`SagerLauncher.exe`**](SagerLauncher.exe) | Windows 10 / 11 (x64) | Minimal Setup & Launcher (Downloads software, manages Windows Startup) | ~390 KB |
+| [**`sager-companion-v0.2.0.apk`**](sager-companion-v0.2.0.apk) | Android 7.0+ (API 24+) | **Ready-to-install Android APK** (Minimal black & white trophy vault & Wi-Fi sync) | ~11.9 MB |
+| [**`sager-v0.2.0-windows-x64.zip`**](sager-v0.2.0-windows-x64.zip) | Windows 10 / 11 (x64) | Full package with `sager.exe`, `SagerLauncher.exe`, batch launchers & assets | ~1.48 MB |
+| [**`sager-companion-v0.2.0-android.zip`**](sager-companion-v0.2.0-android.zip) | Android 7.0+ (API 24+) | Complete Android Jetpack Compose companion source project | ~111 KB |
 
 ---
 

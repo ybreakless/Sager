@@ -444,7 +444,7 @@ impl WebServer {
                     continue;
                 }
 
-                if url == "/api/sound/steam-achievement.wav" && method == Method::Get {
+                if url == "/api/sound/steam-achievement.wav" && (method == Method::Get || method == Method::Head) {
                     let audio_header = Header::from_bytes(&b"Content-Type"[..], &b"audio/wav"[..]).unwrap();
                     let resp = Response::from_data(crate::audio::STEAM_ACHIEVEMENT_WAV).with_header(audio_header);
                     let _ = req.respond(resp);
