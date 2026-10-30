@@ -52,6 +52,25 @@ impl SaveArchiver {
         fs::create_dir_all(&game_backup_dir)
             .map_err(|e| format!("Failed to create backup directory: {}", e))?;
 
+        // Optimization: Skip re-compressing if save has not been modified
+        let latest_path = game_backup_dir.join("latest.json");
+        if latest_path.exists() {
+            if let Ok(content) = fs::read_to_string(&latest_path) {
+                if let Ok(prev_manifest) = serde_json::from_str::<BackupManifest>(&content) {
+                    let newest_source_mtime = Self::get_newest_mtime(source_path);
+                    if newest_source_mtime > 0 && newest_source_mtime <= prev_manifest.backup_timestamp {
+                        let size = prev_manifest.total_bytes;
+                        return Ok(BackupInfo {
+                            file_name: format!("(unchanged since {})", prev_manifest.backup_date_str),
+                            full_path: game_backup_dir,
+                            size_bytes: size,
+                            manifest: Some(prev_manifest),
+                        });
+                    }
+                }
+            }
+        }
+
         let now = chrono::Local::now();
         let timestamp_str = now.format("%Y%m%d_%H%M%S").to_string();
         let zip_filename = format!("{}_{}.zip", clean_name, timestamp_str);
@@ -137,5 +156,24 @@ impl SaveArchiver {
         }
 
         results
+    }
+
+    fn get_newest_mtime(dir: &Path) -> i64 {
+        let mut max_mtime = 0;
+        for entry in WalkDir::new(dir).into_iter().flatten() {
+            if entry.path().is_file() {
+                if let Ok(meta) = entry.metadata() {
+                    if let Ok(mtime) = meta.modified() {
+                        if let Ok(duration) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                            let epoch = duration.as_secs() as i64;
+                            if epoch > max_mtime {
+                                max_mtime = epoch;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        max_mtime
     }
 }

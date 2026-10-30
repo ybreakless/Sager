@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 pub mod achievements;
 pub mod audio;
 pub mod backup;
@@ -16,28 +18,25 @@ use std::time::Duration;
 use tray::{start_notification_listener, SystemTray};
 use web::WebServer;
 
+#[link(name = "kernel32")]
+extern "system" {
+    fn AttachConsole(dwProcessId: u32) -> i32;
+}
+const ATTACH_PARENT_PROCESS: u32 = 0xFFFFFFFF;
+
 fn main() {
-    println!("==================================================");
-    println!("   SAGER - Steam Achievements & Save Backup Hub   ");
-    println!("   Pure Rust System Tray Companion for Windows    ");
-    println!("==================================================");
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--console" || a == "--debug") {
+        unsafe {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+    }
 
     let config = load_config();
-    println!("Backup Target Directory: {}", config.backup_directory.display());
-    println!("Notifications: {}", if config.notifications_enabled { "Enabled" } else { "Disabled" });
-    println!("Sound Chime: {}", if config.sound_enabled { "Enabled" } else { "Disabled" });
-    println!("Auto-Backup: {} ({}x daily, every {} mins)", 
-        if config.auto_backup_enabled { "Enabled" } else { "Disabled" }, 
-        config.get_backups_per_day(),
-        config.auto_backup_interval_minutes);
-
-    let args: Vec<String> = std::env::args().collect();
     let open_ui_on_start = args.iter().any(|a| a == "--ui" || a == "--dashboard" || a == "-d");
-    let run_in_background = args.iter().any(|a| a == "--background" || a == "--silent" || a == "-b" || a == "--hide");
 
-    if run_in_background {
-        tray::hide_console();
-    }
+    // Automatically ensure Sager boots with Windows silently in tray
+    ensure_auto_startup();
 
     let shared_config = Arc::new(Mutex::new(config));
     let (tx, rx) = channel::<AchievementNotification>();
@@ -109,6 +108,32 @@ fn main() {
                 println!(">> Sager system tray icon connected! Running message loop...");
                 tray.run_message_loop();
                 break;
+            }
+        }
+    }
+}
+
+fn ensure_auto_startup() {
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        let lnk = std::path::PathBuf::from(&appdata)
+            .join(r"Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk");
+        if !lnk.exists() {
+            if let Ok(exe_path) = std::env::current_exe() {
+                let file_name = exe_path.file_name().and_then(|f| f.to_str()).unwrap_or("");
+                if file_name.to_lowercase().starts_with("sager") {
+                    let cur_dir = exe_path
+                        .parent()
+                        .unwrap_or_else(|| std::path::Path::new(r"C:\Mein Projekts\Sager"));
+                    let ps_cmd = format!(
+                        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{}'); $s.TargetPath = '{}'; $s.WorkingDirectory = '{}'; $s.Save()",
+                        lnk.to_string_lossy().replace('\'', "''"),
+                        exe_path.to_string_lossy().replace('\'', "''"),
+                        cur_dir.to_string_lossy().replace('\'', "''"),
+                    );
+                    let _ = std::process::Command::new("powershell")
+                        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_cmd])
+                        .output();
+                }
             }
         }
     }

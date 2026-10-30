@@ -1,16 +1,17 @@
 use super::history::{load_achievements_history, record_unlocked_achievement};
 use super::models::{Achievement, AchievementNotification};
 use crate::config::SagerConfig;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 pub struct AchievementWatcher {
     known_unlocked: Arc<Mutex<HashSet<String>>>,
+    last_modified_cache: Arc<Mutex<HashMap<PathBuf, SystemTime>>>,
     notifier_tx: Sender<AchievementNotification>,
 }
 
@@ -26,12 +27,14 @@ impl AchievementWatcher {
 
         Self {
             known_unlocked: Arc::new(Mutex::new(known)),
+            last_modified_cache: Arc::new(Mutex::new(HashMap::new())),
             notifier_tx,
         }
     }
 
     pub fn start(&self, config_provider: Arc<Mutex<SagerConfig>>) {
         let known_unlocked = Arc::clone(&self.known_unlocked);
+        let last_modified_cache = Arc::clone(&self.last_modified_cache);
         let tx = self.notifier_tx.clone();
 
         thread::spawn(move || {
@@ -41,8 +44,8 @@ impl AchievementWatcher {
                     lock.clone()
                 };
 
-                Self::poll_achievements(&config, &known_unlocked, &tx);
-                thread::sleep(Duration::from_secs(3));
+                Self::poll_achievements(&config, &known_unlocked, &last_modified_cache, &tx);
+                thread::sleep(Duration::from_secs(4));
             }
         });
     }
@@ -50,6 +53,7 @@ impl AchievementWatcher {
     pub fn poll_achievements(
         config: &SagerConfig,
         known_unlocked: &Arc<Mutex<HashSet<String>>>,
+        last_modified_cache: &Arc<Mutex<HashMap<PathBuf, SystemTime>>>,
         tx: &Sender<AchievementNotification>,
     ) {
         let mut watch_paths = Vec::new();
@@ -78,7 +82,7 @@ impl AchievementWatcher {
         }
 
         for path in watch_paths {
-            Self::scan_directory_for_achievements(&path, config, known_unlocked, tx);
+            Self::scan_directory_for_achievements(&path, config, known_unlocked, last_modified_cache, tx);
         }
     }
 
@@ -86,11 +90,12 @@ impl AchievementWatcher {
         dir: &Path,
         config: &SagerConfig,
         known_unlocked: &Arc<Mutex<HashSet<String>>>,
+        last_modified_cache: &Arc<Mutex<HashMap<PathBuf, SystemTime>>>,
         tx: &Sender<AchievementNotification>,
     ) {
         if !dir.is_dir() {
             if dir.file_name().map_or(false, |f| f == "achievements.json") {
-                Self::process_achievement_file(dir, config, known_unlocked, tx);
+                Self::process_achievement_file(dir, config, known_unlocked, last_modified_cache, tx);
             }
             return;
         }
@@ -98,7 +103,7 @@ impl AchievementWatcher {
         // Check if directly in this directory
         let direct_file = dir.join("achievements.json");
         if direct_file.exists() {
-            Self::process_achievement_file(&direct_file, config, known_unlocked, tx);
+            Self::process_achievement_file(&direct_file, config, known_unlocked, last_modified_cache, tx);
         }
 
         // Check subdirectories (e.g. %APPDATA%/Goldberg SteamEmu Saves/<appid>/achievements.json)
@@ -108,7 +113,7 @@ impl AchievementWatcher {
                 if sub_path.is_dir() {
                     let ach_file = sub_path.join("achievements.json");
                     if ach_file.exists() {
-                        Self::process_achievement_file(&ach_file, config, known_unlocked, tx);
+                        Self::process_achievement_file(&ach_file, config, known_unlocked, last_modified_cache, tx);
                     }
                 }
             }
@@ -119,8 +124,23 @@ impl AchievementWatcher {
         file_path: &Path,
         config: &SagerConfig,
         known_unlocked: &Arc<Mutex<HashSet<String>>>,
+        last_modified_cache: &Arc<Mutex<HashMap<PathBuf, SystemTime>>>,
         tx: &Sender<AchievementNotification>,
     ) {
+        // Resource optimization: check mtime before reading & deserializing JSON
+        if let Ok(meta) = fs::metadata(file_path) {
+            if let Ok(mtime) = meta.modified() {
+                let mut cache = last_modified_cache.lock().unwrap();
+                if let Some(&cached) = cache.get(file_path) {
+                    if cached == mtime {
+                        // File unmodified since last check! Zero CPU & disk overhead
+                        return;
+                    }
+                }
+                cache.insert(file_path.to_path_buf(), mtime);
+            }
+        }
+
         let Ok(content) = fs::read_to_string(file_path) else {
             return;
         };

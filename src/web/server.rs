@@ -94,7 +94,7 @@ impl WebServer {
                     let console_visible = crate::tray::is_console_visible();
 
                     let status = json!({
-                        "version": "0.1.0",
+                        "version": "0.2.0",
                         "backup_dir": cfg.backup_directory.to_string_lossy(),
                         "games_count": games.len(),
                         "achievements_count": achievements.len(),

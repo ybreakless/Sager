@@ -1,6 +1,6 @@
 [package]
 name = "sager"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Sager Team"]
 description = "Sager - Windows System Tray Game Companion for Steam Achievements & Ludusavi-style Save Backups"
@@ -22,3 +22,10 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Threading",
     "Win32_Graphics_Gdi"
 ] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

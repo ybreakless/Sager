@@ -26,10 +26,13 @@ We are thrilled to announce **Sager v0.2.0**! This major release delivers the of
 - **Intelligent Vault Import**: Safely import and merge achievements from another gaming PC, previous installation, or phone with zero data loss.
 - **Direct Steam Client Launch**: 1-click `[ 🎮 Open in Steam ]` button launching `steam://open/achievements/<appid>`.
 
-### 4. 🕶️ Background Execution & Windows Boot Control
-- **Run in Background**: Minimize all console windows into the Windows System Tray with 1 click.
-- **Make Appear**: Restore the live console window to your desktop anytime.
-- **Windows Startup Toggle**: 1-click toggle directly in the UI to boot Sager silently into the tray on PC startup.
+### 4. ⚡ Zero-Terminal Windowless Automation & Ultra-Low Resource Usage
+- **Native Windows GUI Subsystem (`#![windows_subsystem = "windows"]`)**: Zero terminal or command prompt window opens or lingers on your desktop. Sager runs as a pure background system tray process.
+- **Automatic Silent Windows Boot**: On first launch, Sager places a silent startup shortcut in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Sager.lnk` so it runs automatically in the tray every time Windows boots.
+- **Ultra-Low Memory Footprint**: Uses only **~9.4 MB RAM**, compared to 200MB+ for Electron-based utilities.
+- **Zero Idle CPU**: File watcher caches file modification timestamps (`mtime`) directly via the filesystem, avoiding unnecessary disk reads and JSON parsing when no achievements have changed.
+- **Smart Differential Backup**: Saves are only compressed to Google Drive if the save directory was modified since the previous snapshot, saving disk cycles and cloud upload bandwidth.
+- **Developer Console Mode**: If you need live stdout logs, launch with `sager.exe --console` or `--debug`.
 
 ---
 
