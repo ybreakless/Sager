@@ -5,11 +5,13 @@
 <p align="center">
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Language-Pure%20Rust-orange.svg" alt="Rust"></a>
   <a href="https://www.microsoft.com/windows"><img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg" alt="Platform"></a>
+  <a href="android/"><img src="https://img.shields.io/badge/Android-Companion%20App-3DDC84.svg?logo=android&logoColor=white" alt="Android"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/sponsors/ybreakless"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=flat&logo=github-sponsors" alt="Sponsor ybreakless"></a>
   <a href="https://github.com/ybreakless/Sager"><img src="https://img.shields.io/badge/GitHub-ybreakless%2FSager-purple.svg" alt="GitHub"></a>
 </p>
 
-> **Sager** is a lightweight, pure Rust Windows system tray companion that unifies **Steam & Project Lightning Achievement Notifications** with **Ludusavi-style Game Save Backup and Google Drive Cloud Synchronization**.
+> **Sager** is a lightweight, pure Rust Windows system tray companion that unifies **Steam & Project Lightning Achievement Notifications** with **Ludusavi-style Game Save Backup and Google Drive Cloud Synchronization**, paired with a **Pocket Android Companion** for local home Wi-Fi sync!
 
 ---
 
@@ -116,6 +118,16 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
   - Double-click [`launch_dashboard.bat`](launch_dashboard.bat) to open the UI instantly in your default browser.
   - Run `sager.exe --ui` to start Sager and open the dashboard immediately.
 
+### 📱 6. Sager Android Companion & Local Home Wi-Fi Sync
+- **Carry Your Trophies Everywhere**: Native Android app (Jetpack Compose) caches all your unlocked achievements offline on your phone. Proudly show off your gaming achievements to friends anywhere with zero cellular/internet data needed!
+- **Local Home Wi-Fi Sync**: When you get home and connect to Wi-Fi, tap `[ ⚡ Sync Now ]`. The Android app connects directly to your desktop (`http://<PC_IP>:3939/api/mobile/sync`) over your home network and updates all progress in seconds.
+- **Zero Third-Party Cloud**: 100% private, peer-to-peer on your home LAN. No logins, accounts, or telemetry.
+- **Show-Off Celebration Mode**: Tap any trophy in the app to open a fullscreen celebration card with golden trophy animation and achievement metrics.
+
+### 📦 7. Sager Vault Export & Import (Cross-PC Portability)
+- **1-Click Vault Export**: Download your entire gaming progression (achievements, discovered games, backup schedule, manifests) into a single portable `.json` bundle.
+- **Intelligent Vault Import**: Seamlessly import vault bundles on a new PC or Android phone with automatic merge and zero data loss.
+
 ---
 
 ## 🔄 Cross-PC Synchronization Workflow
@@ -207,6 +219,32 @@ This manages the startup shortcut in `%APPDATA%\Microsoft\Windows\Start Menu\Pro
 
 ---
 
+## 📦 Releases & Downloads
+
+Ready-to-use release packages are maintained in the [GitHub Releases](https://github.com/ybreakless/Sager/releases) tab:
+
+| Release Asset | Platform | Description | Size |
+|---|---|---|---|
+| [**`sager-v0.2.0-windows-x64.zip`**](releases/v0.2.0/sager-v0.2.0-windows-x64.zip) | Windows 10 / 11 (x64) | Standalone executable, tray companion, batch scripts & audio | ~1.5 MB |
+| [**`sager-companion-v0.2.0-android.zip`**](releases/v0.2.0/sager-companion-v0.2.0-android.zip) | Android 7.0+ (API 24+) | Native Android Jetpack Compose Companion App project | ~111 KB |
+
+---
+
+## 💖 Support Sager on GitHub Sponsors
+
+Sager is free, open-source, local-first, zero-telemetry software built for the gaming community. If Sager saves you time or enhances your gaming setup, please consider sponsoring development:
+
+👉 **[Sponsor @ybreakless on GitHub Sponsors](https://github.com/sponsors/ybreakless)**
+
+| Sponsorship Tier | Monthly | Perks & Benefits |
+|---|---|---|
+| **⚡ Supporter** | **\$5 / month** | Name listed in GitHub Backers & `README.md`, exclusive supporter badge. |
+| **🎮 Power Gamer** | **\$15 / month** | Priority requests for new game save locations & emulators, voting on the roadmap. |
+| **🚀 Pro Sponsor** | **\$50 / month** | Direct 1-on-1 assistance for custom backup setups, project logo on README. |
+| **👑 Champion** | **\$100 / month** | Permanent sponsor credit, dedicated feature sponsorship, direct priority support. |
+
+---
+
 ## 📁 Project Architecture
 
 ```
@@ -214,18 +252,33 @@ Sager/
 ├── Cargo.toml                  # Zero heavyweight framework dependencies
 ├── LICENSE                     # MIT License
 ├── README.md                   # Documentation
+├── .github/
+│   └── FUNDING.yml             # GitHub Sponsors configuration
+├── android/                    # Sager Android Companion App (Jetpack Compose)
+│   ├── app/
+│   │   ├── src/main/kotlin/com/ybreakless/sager/
+│   │   │   ├── model/          # Offline achievement & game data models
+│   │   │   ├── data/           # Offline cache repository & LAN sync
+│   │   │   └── ui/main/        # Steam Deck-inspired Jetpack Compose UI
+│   │   └── build.gradle.kts
+│   └── build.gradle.kts
+├── releases/
+│   └── v0.2.0/                 # Release packages & notes
 ├── scripts/
 │   ├── install_startup.ps1     # Creates Windows Startup shortcut
 │   └── start_sager.vbs         # Silent VBScript launcher
 └── src/
     ├── main.rs                 # Thread coordination & Win32 message loop
+    ├── audio.rs                # In-memory Win32 PlaySound for Steam chime
     ├── config.rs               # Auto-detection for Google Drive, Steam, Goldberg & JSON config
+    ├── overlay.rs              # TopMost in-game overlay toast window (WS_EX_TOPMOST)
     ├── tray.rs                 # Win32 System Tray icon, context menu, & notifications
     ├── achievements/
     │   ├── mod.rs
+    │   ├── catalog.rs          # Steam manifest & achievement definition database
+    │   ├── history.rs          # Persistent JSON storage & Goldberg sync
     │   ├── models.rs           # Achievement data structures
-    │   ├── watcher.rs          # Real-time filesystem scanner for emulators & Steam
-    │   └── history.rs          # Persistent JSON storage for unlocked trophies
+    │   └── watcher.rs          # Real-time filesystem scanner for emulators & Steam
     ├── backup/
     │   ├── mod.rs
     │   ├── scanner.rs          # Ludusavi-style save directory discovery engine
@@ -233,8 +286,8 @@ Sager/
     │   └── restore.rs          # Safe extraction & pre-restore safety backups
     └── web/
         ├── mod.rs
-        ├── server.rs           # Embedded HTTP REST API server (tiny_http)
-        └── ui.rs               # Dark-mode dashboard (HTML/CSS/JS)
+        ├── server.rs           # Embedded HTTP REST API & Mobile LAN sync server
+        └── ui.rs               # Responsive ProtonVPN-style dashboard & vault manager
 ```
 
 ---

@@ -22,16 +22,24 @@ impl WebServer {
                 cfg.web_port
             };
 
-            let addr = format!("127.0.0.1:{}", port);
-            let server = match Server::http(&addr) {
+            let bind_addr = format!("0.0.0.0:{}", port);
+            let server = match Server::http(&bind_addr) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("Failed to start Sager web server on {}: {}", addr, e);
-                    return;
+                Err(_) => {
+                    let fallback = format!("127.0.0.1:{}", port);
+                    match Server::http(&fallback) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            eprintln!("Failed to start Sager web server on {}: {}", fallback, e);
+                            return;
+                        }
+                    }
                 }
             };
 
-            println!("Sager Web Dashboard running on http://{}", addr);
+            let local_ip = get_local_ip();
+            println!("Sager Web Companion active on http://127.0.0.1:{}", port);
+            println!("Home Wi-Fi Mobile Sync active on http://{}:{}/api/mobile/sync", local_ip, port);
 
             for mut req in server.incoming_requests() {
                 let url = req.url().to_string();
@@ -482,6 +490,116 @@ impl WebServer {
                     continue;
                 }
 
+                if url == "/api/network/info" && method == Method::Get {
+                    let cfg = config_provider.lock().unwrap();
+                    let local_ip = get_local_ip();
+                    let port = cfg.web_port;
+                    let resp_body = json!({
+                        "local_ip": local_ip,
+                        "port": port,
+                        "mobile_sync_url": format!("http://{}:{}/api/mobile/sync", local_ip, port),
+                        "dashboard_url": format!("http://{}:{}", local_ip, port),
+                        "pc_name": std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Sager-PC".to_string())
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/mobile/sync" && method == Method::Get {
+                    let cfg = config_provider.lock().unwrap().clone();
+                    let achievements = load_achievements_history();
+                    let games = SaveScanner::scan_all(&cfg);
+                    let summaries = crate::achievements::AchievementCatalog::get_overall_summary(&cfg);
+                    let local_ip = get_local_ip();
+
+                    let resp_body = json!({
+                        "sager_version": "0.2.0",
+                        "pc_name": std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Sager-PC".to_string()),
+                        "local_ip": local_ip,
+                        "sync_timestamp": chrono::Utc::now().timestamp(),
+                        "total_games": games.len(),
+                        "unlocked_achievements_count": achievements.len(),
+                        "games": summaries,
+                        "unlocked_achievements": achievements,
+                        "preferred_launcher": cfg.preferred_launcher
+                    });
+                    let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if (url == "/api/vault/export" || url == "/api/vault/export-download") && (method == Method::Get || method == Method::Post) {
+                    let cfg = config_provider.lock().unwrap().clone();
+                    let achievements = load_achievements_history();
+                    let games = SaveScanner::scan_all(&cfg);
+                    let now = chrono::Utc::now();
+
+                    let export_bundle = json!({
+                        "format": "sager_vault_export",
+                        "version": "0.2.0",
+                        "exported_at": now.to_rfc3339(),
+                        "timestamp": now.timestamp(),
+                        "pc_name": std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Sager-PC".to_string()),
+                        "achievements": achievements,
+                        "discovered_games": games,
+                        "config": {
+                            "backup_directory": cfg.backup_directory.to_string_lossy(),
+                            "auto_backup_enabled": cfg.auto_backup_enabled,
+                            "auto_backup_interval_minutes": cfg.auto_backup_interval_minutes,
+                            "preferred_launcher": cfg.preferred_launcher,
+                            "sound_enabled": cfg.sound_enabled
+                        }
+                    });
+
+                    let filename = format!("sager-vault-export-{}.json", now.format("%Y%m%d-%H%M%S"));
+                    let disp_header = Header::from_bytes(
+                        &b"Content-Disposition"[..],
+                        format!("attachment; filename=\"{}\"", filename).into_bytes(),
+                    ).unwrap();
+
+                    let resp = Response::from_string(export_bundle.to_string())
+                        .with_header(json_header)
+                        .with_header(disp_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/vault/import" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&body) {
+                        let mut imported_count = 0;
+                        if let Some(achs) = val.get("achievements").and_then(|v| v.as_array()) {
+                            for a in achs {
+                                if let Ok(ach) = serde_json::from_value::<Achievement>(a.clone()) {
+                                    crate::achievements::record_unlocked_achievement(&ach);
+                                    imported_count += 1;
+                                }
+                            }
+                        }
+
+                        let resp_body = json!({
+                            "success": true,
+                            "imported_count": imported_count,
+                            "message": format!("Successfully imported {} achievements into local Sager Vault!", imported_count)
+                        });
+                        let resp = Response::from_string(resp_body.to_string()).with_header(json_header);
+                        let _ = req.respond(resp);
+                    } else {
+                        let resp_body = json!({
+                            "success": false,
+                            "message": "Invalid JSON vault payload"
+                        });
+                        let resp = Response::from_string(resp_body.to_string())
+                            .with_header(json_header)
+                            .with_status_code(StatusCode(400));
+                        let _ = req.respond(resp);
+                    }
+                    continue;
+                }
+
                 if url == "/api/open-folder" && method == Method::Post {
                     let cfg = config_provider.lock().unwrap().clone();
                     let _ = open::that(&cfg.backup_directory);
@@ -770,4 +888,19 @@ pub fn toggle_windows_startup() -> (bool, String) {
     } else {
         (false, "Failed to resolve APPDATA path".to_string())
     }
+}
+
+pub fn get_local_ip() -> String {
+    use std::net::UdpSocket;
+    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+        if socket.connect("8.8.8.8:80").is_ok() {
+            if let Ok(addr) = socket.local_addr() {
+                let ip_str = addr.ip().to_string();
+                if ip_str != "0.0.0.0" && ip_str != "127.0.0.1" {
+                    return ip_str;
+                }
+            }
+        }
+    }
+    "127.0.0.1".to_string()
 }

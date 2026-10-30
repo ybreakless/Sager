@@ -816,6 +816,7 @@ pub fn get_dashboard_html() -> &'static str {
         <div class="nav-tab" onclick="switchTab('tab-achievements')">🏆 Achievements Matrix</div>
         <div class="nav-tab" onclick="switchTab('tab-saves')">💾 Game Saves</div>
         <div class="nav-tab" onclick="switchTab('tab-cloud')">☁️ Cloud & Restore</div>
+        <div class="nav-tab" onclick="switchTab('tab-vault')">📦 Vault & Mobile Sync</div>
         <div class="nav-tab" onclick="switchTab('tab-test')">🧪 Test Center</div>
         <div class="nav-tab" onclick="switchTab('tab-settings')">⚙️ Settings</div>
     </nav>
@@ -1156,7 +1157,95 @@ pub fn get_dashboard_html() -> &'static str {
         </div>
 
         <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- TAB 6: SETTINGS                                                -->
+        <!-- TAB 6: VAULT EXPORT & IMPORT / MOBILE SYNC                      -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div id="tab-vault" class="tab-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                
+                <!-- Export Vault Card -->
+                <div class="switchboard-card">
+                    <div class="card-header-sm">
+                        <span>📦 Export Sager Vault</span>
+                        <span class="cloud-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">Zero Loss Backup</span>
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                        Export your complete trophy unlock history, discovered games, backup configuration, and manifest into a single portable bundle (<code>.json</code> / <code>.sager</code>). Carry your achievements anywhere or restore on a new machine.
+                    </div>
+                    <button class="btn btn-gold" onclick="exportVaultBundle()" style="width: 100%; justify-content: center; padding: 12px;">
+                        <span>📦</span>
+                        <span>Download Sager Vault Bundle (.json)</span>
+                    </button>
+                    <div style="margin-top: 12px; font-size: 11.5px; color: var(--text-muted); text-align: center;">
+                        Compatible with Desktop Sager & Android Companion App
+                    </div>
+                </div>
+
+                <!-- Import Vault Card -->
+                <div class="switchboard-card">
+                    <div class="card-header-sm">
+                        <span>📥 Import Sager Vault</span>
+                        <span class="cloud-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary);">Auto-Merge</span>
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
+                        Import a previously exported vault or bundle from another PC or Android companion. Achievements are intelligently merged into your local registry without overwriting existing unlocks.
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" id="vault-import-input" accept=".json,.sager" class="form-input" style="padding: 8px;" />
+                        <button class="btn" onclick="importVaultBundle()" style="width: 100%; justify-content: center; padding: 12px; background: linear-gradient(135deg, #059669, #10b981);">
+                            <span>📥</span>
+                            <span>Import & Merge into Local Vault</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Android Companion & Local Home Wi-Fi Sync Card -->
+            <div class="switchboard-card" style="border-color: rgba(99, 102, 241, 0.4); background: linear-gradient(145deg, #0e1526 0%, #171d33 100%);">
+                <div class="card-header-sm">
+                    <span style="color: #818cf8; font-size: 15px; font-weight: 800;">📱 Sager Android Companion & Home Wi-Fi Sync</span>
+                    <span id="wifi-status-badge" class="cloud-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">🟢 Ready for LAN Sync</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0;">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 13px; font-weight: 700; color: #fff;">🏠 Home Network Connection Details:</div>
+                        <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px;">
+                            <div style="color: var(--text-muted); font-size: 11px;">Desktop Local IP (Home Wi-Fi):</div>
+                            <div style="font-weight: 800; color: var(--gold); font-size: 15px;" id="lan-ip-display">Loading LAN IP...</div>
+                            <div style="color: var(--text-muted); font-size: 11px; margin-top: 8px;">Mobile Sync API URL:</div>
+                            <div style="color: var(--primary); font-size: 12px; word-break: break-all;" id="mobile-sync-url-display">http://.../api/mobile/sync</div>
+                        </div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sm btn-gold" onclick="testMobileSyncPayload()">📱 Test Mobile Payload</button>
+                            <button class="btn btn-sm" onclick="copyMobileSyncUrl()">📋 Copy Sync URL</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+                        <div style="font-size: 13px; font-weight: 700; color: #fff;">⚡ How It Works on the Go & at Home:</div>
+                        <div>1️⃣ <strong>Show Friends Anywhere:</strong> Sager Android caches all your trophies and unlocked achievements offline in your phone. Show off your gaming feats anywhere with zero internet required.</div>
+                        <div>2️⃣ <strong>Automatic Home Wi-Fi Update:</strong> When you get home and connect to Wi-Fi, tap <em>Sync with Sager PC</em> on your phone. It pulls the latest unlocks directly from this PC over your local network!</div>
+                        <div>3️⃣ <strong>100% Private:</strong> Pure local LAN sync. No third-party servers, no logins, no telemetry.</div>
+                    </div>
+
+                </div>
+
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="font-size: 12px; color: var(--text-muted);">
+                        📦 <strong>Android APK Release:</strong> Standalone package available in the <a href="https://github.com/ybreakless/Sager/releases" target="_blank" style="color: var(--primary); text-decoration: underline;">GitHub Releases</a> section.
+                    </div>
+                    <a href="https://github.com/ybreakless/Sager/releases" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff;">
+                        🤖 Get Android App (GitHub Release)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TAB 7: SETTINGS                                                -->
         <!-- ═══════════════════════════════════════════════════════════════ -->
         <div id="tab-settings" class="tab-content">
             <div class="switchboard-card">
@@ -1264,6 +1353,8 @@ pub fn get_dashboard_html() -> &'static str {
                 loadGames();
             } else if (tabId === 'tab-cloud') {
                 loadBackups();
+            } else if (tabId === 'tab-vault') {
+                loadNetworkInfo();
             } else if (tabId === 'tab-test') {
                 runFullDiagnostics();
             }
@@ -1943,6 +2034,86 @@ pub fn get_dashboard_html() -> &'static str {
             }
         }
 
+        // ── Vault Export & Import / Mobile Sync Handlers ──
+        let cachedMobileSyncUrl = '';
+
+        async function loadNetworkInfo() {
+            try {
+                const res = await fetch('/api/network/info');
+                const d = await res.json();
+                cachedMobileSyncUrl = d.mobile_sync_url;
+                const ipEl = document.getElementById('lan-ip-display');
+                if (ipEl) ipEl.textContent = `${d.local_ip}:${d.port} (${d.pc_name})`;
+                const urlEl = document.getElementById('mobile-sync-url-display');
+                if (urlEl) urlEl.textContent = d.mobile_sync_url;
+            } catch (e) {
+                console.error('Error loading network info:', e);
+            }
+        }
+
+        function exportVaultBundle() {
+            showToast('📦 Preparing Sager Vault export bundle...');
+            logToConsole('Exporting full Sager Vault bundle (.json)...', 'INFO');
+            window.location.href = '/api/vault/export';
+        }
+
+        async function importVaultBundle() {
+            const input = document.getElementById('vault-import-input');
+            if (!input || !input.files || input.files.length === 0) {
+                showToast('⚠️ Please select a .json or .sager vault file to import');
+                return;
+            }
+            const file = input.files[0];
+            showToast('📥 Reading and verifying vault file: ' + file.name);
+            logToConsole(`Reading vault bundle: ${file.name} (${file.size} bytes)...`, 'INFO');
+
+            try {
+                const text = await file.text();
+                const res = await fetch('/api/vault/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: text
+                });
+                const d = await res.json();
+                if (d.success) {
+                    showToast('✅ ' + d.message);
+                    logToConsole(d.message, 'PASS');
+                    loadAchievementsMatrix();
+                } else {
+                    showToast('❌ Import error: ' + d.message);
+                    logToConsole('Import failed: ' + d.message, 'ERROR');
+                }
+            } catch (e) {
+                showToast('❌ Error parsing vault file: ' + e);
+                logToConsole('Error importing vault: ' + e, 'ERROR');
+            }
+        }
+
+        async function testMobileSyncPayload() {
+            showToast('📱 Fetching Mobile LAN Sync payload...');
+            logToConsole('Testing GET /api/mobile/sync (payload sent to Android companion)...', 'INFO');
+            try {
+                const res = await fetch('/api/mobile/sync');
+                const d = await res.json();
+                logToConsole(`Mobile Sync OK: ${d.unlocked_achievements_count} trophies across ${d.total_games} games`, 'PASS');
+                showToast(`✅ Android payload verified: ${d.unlocked_achievements_count} trophies ready for phone`);
+            } catch (e) {
+                logToConsole('Mobile sync test failed: ' + e, 'ERROR');
+            }
+        }
+
+        function copyMobileSyncUrl() {
+            if (!cachedMobileSyncUrl) {
+                showToast('⚠️ Network URL not ready yet');
+                return;
+            }
+            navigator.clipboard.writeText(cachedMobileSyncUrl).then(() => {
+                showToast('📋 Copied Mobile Sync URL to clipboard!');
+            }).catch(() => {
+                showToast('📋 Mobile Sync URL: ' + cachedMobileSyncUrl);
+            });
+        }
+
         // ── Initialization ──
         window.addEventListener('DOMContentLoaded', () => {
             const savedMode = localStorage.getItem('sager_view_mode') || 'tray';
@@ -1953,6 +2124,7 @@ pub fn get_dashboard_html() -> &'static str {
             loadGames();
             loadAchievementsMatrix();
             loadSystemStatus();
+            loadNetworkInfo();
         });
     </script>
     <audio id="steam-chime" preload="auto" src="/api/sound/steam-achievement.wav"></audio>
