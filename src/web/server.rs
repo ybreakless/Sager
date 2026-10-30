@@ -89,6 +89,9 @@ impl WebServer {
                         "google_drive_installed": drive.google_drive_installed,
                         "backup_dir_exists": drive.backup_dir_exists,
                         "backup_dir_is_google_drive": drive.backup_dir_is_google_drive,
+                        "preferred_launcher": cfg.preferred_launcher,
+                        "show_in_launcher": cfg.show_in_launcher,
+                        "tray_compact_mode": cfg.tray_compact_mode,
                     });
 
                     let resp =
@@ -261,6 +264,17 @@ impl WebServer {
                     continue;
                 }
 
+                if url == "/api/achievements/overview" && method == Method::Get {
+                    let cfg = config_provider.lock().unwrap().clone();
+                    let overview = crate::achievements::AchievementCatalog::get_overall_summary(&cfg);
+                    let resp = Response::from_string(
+                        serde_json::to_string(&overview).unwrap_or_default(),
+                    )
+                    .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 if url == "/api/achievements/test" && method == Method::Post {
                     let now = chrono::Utc::now().timestamp();
                     let test_notif = AchievementNotification {
@@ -284,6 +298,8 @@ impl WebServer {
                         unlocked: true,
                         unlock_time: Some(now),
                         icon_path: None,
+                        launcher: Some("Project Lightning".to_string()),
+                        hidden: false,
                     };
                     crate::achievements::record_unlocked_achievement(&test_ach);
 
@@ -340,6 +356,15 @@ impl WebServer {
                         {
                             cfg.auto_backup_enabled = auto;
                         }
+                        if let Some(l) = val.get("preferred_launcher").and_then(|v| v.as_str()) {
+                            cfg.preferred_launcher = l.to_string();
+                        }
+                        if let Some(show) = val.get("show_in_launcher").and_then(|v| v.as_bool()) {
+                            cfg.show_in_launcher = show;
+                        }
+                        if let Some(compact) = val.get("tray_compact_mode").and_then(|v| v.as_bool()) {
+                            cfg.tray_compact_mode = compact;
+                        }
                         if let Some(gdrive) = val.get("google_drive_exe") {
                             if gdrive.is_null() || gdrive.as_str() == Some("") {
                                 cfg.google_drive_exe = None;
@@ -352,6 +377,36 @@ impl WebServer {
 
                     let resp_body =
                         json!({ "success": true, "message": "Settings updated" });
+                    let resp = Response::from_string(resp_body.to_string())
+                        .with_header(json_header);
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                if url == "/api/launcher/config" && method == Method::Post {
+                    let mut body = String::new();
+                    let _ = req.as_reader().read_to_string(&mut body);
+
+                    let mut cfg = config_provider.lock().unwrap();
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&body) {
+                        if let Some(l) = val.get("preferred_launcher").and_then(|v| v.as_str()) {
+                            cfg.preferred_launcher = l.to_string();
+                        }
+                        if let Some(show) = val.get("show_in_launcher").and_then(|v| v.as_bool()) {
+                            cfg.show_in_launcher = show;
+                        }
+                        if let Some(compact) = val.get("tray_compact_mode").and_then(|v| v.as_bool()) {
+                            cfg.tray_compact_mode = compact;
+                        }
+                        let _ = save_config(&cfg);
+                    }
+
+                    let resp_body = json!({
+                        "success": true,
+                        "preferred_launcher": cfg.preferred_launcher,
+                        "show_in_launcher": cfg.show_in_launcher,
+                        "tray_compact_mode": cfg.tray_compact_mode,
+                    });
                     let resp = Response::from_string(resp_body.to_string())
                         .with_header(json_header);
                     let _ = req.respond(resp);
@@ -452,6 +507,8 @@ impl WebServer {
                         unlocked: true,
                         unlock_time: Some(now),
                         icon_path: None,
+                        launcher: Some("Custom Simulator".to_string()),
+                        hidden: false,
                     };
                     crate::achievements::record_unlocked_achievement(&ach);
 

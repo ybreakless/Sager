@@ -373,6 +373,9 @@ fn show_context_menu(hwnd: HWND) {
         let status_info = format!("📊 Status: {} Games | {} Trophies", games.len(), achievements.len());
         AppendMenuW(hmenu, MF_STRING | MF_GRAYED, ID_STATUS_HEADER, to_wide_chars(&status_info).as_ptr());
 
+        let launcher_info = format!("🚀 Launcher: {}", cfg.preferred_launcher);
+        AppendMenuW(hmenu, MF_STRING | MF_GRAYED, 0, to_wide_chars(&launcher_info).as_ptr());
+
         let sched_info = if cfg.auto_backup_enabled {
             format!("⏱️ Auto-Backup: {}x / day (Every {} min)", bpd, cfg.auto_backup_interval_minutes)
         } else {
@@ -470,13 +473,8 @@ pub unsafe extern "system" fn tray_window_proc(
                     show_context_menu(hwnd);
                 }
                 WM_LBUTTONUP => {
-                    // Left-click: open preferred backup location
-                    let cfg = config::load_config();
-                    if cfg.backup_directory.exists() {
-                        let _ = open::that(&cfg.backup_directory);
-                    } else {
-                        let _ = open::that("http://127.0.0.1:3939");
-                    }
+                    // Left-click: Open ProtonVPN-style Sager Companion Dashboard immediately
+                    let _ = open::that("http://127.0.0.1:3939");
                 }
                 WM_LBUTTONDBLCLK => {
                     // Double left-click: open web dashboard

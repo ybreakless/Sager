@@ -28,29 +28,43 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
 
 ## ✨ Features
 
-### 🏆 1. Real-Time Achievement Notifier (Project Lightning & Steam)
-- **Automatic File Watching**: Continuously monitors achievement databases from:
-  - `%APPDATA%\Goldberg SteamEmu Saves\<AppID>\achievements.json`
-  - `%LOCALAPPDATA%\ProjectLightning\` and `%APPDATA%\Project Lightning\`
-  - Official Steam userdata and overlay stores
-- **Native Windows Notifications**: Displays Windows tray balloon/toast alerts with game title, achievement name, description, and audio chime.
-- **Achievement History**: Stores a timestamped archive of all unlocked achievements accessible via the dashboard.
-- **Audio Chimes**: Plays a subtle Windows audio alert when an achievement unlocks.
+### 🛡️ 1. ProtonVPN-Style System Tray Companion & Dual Views
+- **Single Left-Click Tray Activation**: Clicking the tray icon instantly brings up the sleek ProtonVPN-style desktop companion interface.
+- **Dual View Modes**:
+  - `📱 Tray Mode`: Ultra-compact (480px) widget view inspired by ProtonVPN, anchored for quick status checks, one-click backups, and instant toggle switches.
+  - `🖥️ Studio Mode`: Widescreen responsive desktop suite for in-depth save exploration, restore operations, and diagnostics.
+- **One-Click Hero Action**: Giant `BACKUP ALL GAMES TO GOOGLE DRIVE` button with status animation.
+- **Quick Controls Switchboard**:
+  - Auto-Backup Saves (Toggle Switch)
+  - Daily Backup Frequency selector (`1x`, `6x`, `12x`, `24x Hourly ⭐`, `48x`)
+  - Audio Chimes & Windows Desktop Alerts (Toggle Switches)
+  - Preferred Game Launcher selector (Goldberg, Steam, Project Lightning, Custom)
+  - In-Launcher Achievement Sync (Toggle Switch)
 
-### 💾 2. Ludusavi-Style Save Backup & Cross-PC Cloud Sync
-- **Deep Save Directory Discovery**: Automatically scans PC save locations without manual configuration:
-  - `%USERPROFILE%\Saved Games`
-  - `%USERPROFILE%\Documents\My Games` and publisher folders (CD Projekt Red, etc.)
-  - `%LOCALAPPDATA%` and `%APPDATA%`
-  - Goldberg SteamEmu save directories
-  - Steam Cloud Userdata (`<SteamPath>\userdata\<UserID>\<AppID>\remote`)
+### 🏆 2. Unlocked vs Locked Achievements Matrix ("Overall Situation")
+- **Full Catalog Discovery**: Automatically scans and correlates full achievement catalogs from `steam_settings\achievements.json`, Steam app manifests, and Goldberg emulators.
+- **Visual Progress Bar & Metrics**: Displays total achievements, unlocked count, locked count, and completion percentage (e.g. `LEGO Batman: 2 of 64 Unlocked (3.1%)`).
+- **Interactive Filter Pills**: Instantly toggle between `All`, `🏆 Unlocked`, and `🔒 Locked / Pending`.
+- **Real-Time Search Bar**: Search achievements across all games by title, description, or internal ID.
+- **Launcher Integration**: Choose which launcher format you use (Goldberg, Steam, Project Lightning), with the option to display and sync achievement status into the launcher.
+
+### 💾 3. Deep Game Save Discovery & Cross-PC Cloud Sync
+- **23+ Detected Save Locations Out-of-the-Box**:
+  - `LEGO Batman: Legacy of the Dark Knight` (`%LOCALAPPDATA%\Warner Bros. Interactive Entertainment\...`)
+  - `The Invincible` (`%LOCALAPPDATA%\TheInvincible\Saved\SaveGames`)
+  - `Clair Obscur: Expedition 33` (`%LOCALAPPDATA%\Sandfall\Saved\SaveGames`)
+  - `F1 25` (`%LOCALAPPDATA%\F1 25\savegame`)
+  - `Bodycam` (`%LOCALAPPDATA%\Bodycam\Saved\SaveGames`)
+  - `The Last of Us Part I` & `Uncharted` (`%USERPROFILE%\Saved Games`)
+  - `Assassin's Creed Shadows` (Ubisoft & Goldberg Uplay)
+  - `Assetto Corsa Competizione` (`%LOCALAPPDATA%\AC2`)
+  - `CD Projekt Red` (Witcher / Cyberpunk)
+  - Steam Cloud Userdata (`BioShock Infinite`, `Portal 2`, `Resident Evil 6`, `Wallpaper Engine`)
 - **Automated Google Drive Sync**:
-  - Automatically detects your Google Drive virtual drive (`G:\My Drive`, `H:\My Drive`) or desktop sync directory.
-  - Generates compressed timestamped zip archives containing your save files and a `sager_manifest.json` metadata file.
-  - Automatically runs background backups on a configurable schedule (e.g. every 60 minutes).
-- **1-Click Cross-Device Restore**:
-  - Back up on your laptop -> Google Drive syncs -> Click **Restore to PC** on your desktop.
-  - Automatically creates a safety backup of any existing local saves before applying cloud saves.
+  - Automatic detection of Google Drive for Desktop (`G:\My Drive` / `H:\My Drive`).
+  - Compressed timestamped zip archives with JSON manifests.
+- **1-Click Restore with Zero Data Loss Guarantee**:
+  - Automatically creates a timestamped safety backup of your existing local save before applying cloud restores.
 
 ### 🖥️ 3. Windows System Tray & Google Drive Integration
 - **Custom "S" Logo Tray Icon**: Distinctive cyberpunk cyan-to-gold "S" monogram icon embedded directly into the Windows notification tray area.

@@ -78,18 +78,19 @@ impl AchievementWatcher {
         }
 
         for path in watch_paths {
-            Self::scan_directory_for_achievements(&path, known_unlocked, tx);
+            Self::scan_directory_for_achievements(&path, config, known_unlocked, tx);
         }
     }
 
     fn scan_directory_for_achievements(
         dir: &Path,
+        config: &SagerConfig,
         known_unlocked: &Arc<Mutex<HashSet<String>>>,
         tx: &Sender<AchievementNotification>,
     ) {
         if !dir.is_dir() {
             if dir.file_name().map_or(false, |f| f == "achievements.json") {
-                Self::process_achievement_file(dir, known_unlocked, tx);
+                Self::process_achievement_file(dir, config, known_unlocked, tx);
             }
             return;
         }
@@ -97,7 +98,7 @@ impl AchievementWatcher {
         // Check if directly in this directory
         let direct_file = dir.join("achievements.json");
         if direct_file.exists() {
-            Self::process_achievement_file(&direct_file, known_unlocked, tx);
+            Self::process_achievement_file(&direct_file, config, known_unlocked, tx);
         }
 
         // Check subdirectories (e.g. %APPDATA%/Goldberg SteamEmu Saves/<appid>/achievements.json)
@@ -107,7 +108,7 @@ impl AchievementWatcher {
                 if sub_path.is_dir() {
                     let ach_file = sub_path.join("achievements.json");
                     if ach_file.exists() {
-                        Self::process_achievement_file(&ach_file, known_unlocked, tx);
+                        Self::process_achievement_file(&ach_file, config, known_unlocked, tx);
                     }
                 }
             }
@@ -116,6 +117,7 @@ impl AchievementWatcher {
 
     fn process_achievement_file(
         file_path: &Path,
+        config: &SagerConfig,
         known_unlocked: &Arc<Mutex<HashSet<String>>>,
         tx: &Sender<AchievementNotification>,
     ) {
@@ -124,7 +126,22 @@ impl AchievementWatcher {
         };
 
         // Determine Game Name or AppID
-        let (game_name, app_id) = Self::infer_game_info(file_path);
+        let (mut game_name, app_id) = Self::infer_game_info(file_path);
+
+        // Try resolving full catalog and game title
+        let mut catalog_map = std::collections::HashMap::new();
+        if let Some(aid) = &app_id {
+            if let Some(parent) = file_path.parent() {
+                let (resolved_title, catalog_opt) =
+                    super::catalog::AchievementCatalog::resolve_game_and_catalog(aid, parent, config);
+                game_name = resolved_title;
+                if let Some(defs) = catalog_opt {
+                    for d in defs {
+                        catalog_map.insert(d.name.clone(), d);
+                    }
+                }
+            }
+        }
 
         // Try parsing JSON content
         let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&content) else {
@@ -171,6 +188,20 @@ impl AchievementWatcher {
                     }
                 }
 
+                // Check catalog for richer title & description if not present
+                if let Some(def) = catalog_map.get(ach_key) {
+                    if display_name == *ach_key {
+                        if let Some(dn) = &def.displayName {
+                            display_name = dn.clone();
+                        }
+                    }
+                    if description.is_empty() {
+                        if let Some(desc) = &def.description {
+                            description = desc.clone();
+                        }
+                    }
+                }
+
                 if unlocked {
                     achievements.push(Achievement {
                         id: ach_key.clone(),
@@ -181,6 +212,8 @@ impl AchievementWatcher {
                         unlocked: true,
                         unlock_time,
                         icon_path: None,
+                        launcher: Some(config.preferred_launcher.clone()),
+                        hidden: false,
                     });
                 }
             }
@@ -222,6 +255,8 @@ impl AchievementWatcher {
                             unlocked: true,
                             unlock_time,
                             icon_path: None,
+                            launcher: Some(config.preferred_launcher.clone()),
+                            hidden: false,
                         });
                     }
                 }
@@ -274,6 +309,10 @@ impl AchievementWatcher {
                         game_name = trimmed;
                         return (game_name, app_id);
                     }
+                }
+                if let Some(known) = super::catalog::get_known_app_name(&folder_name) {
+                    game_name = known.to_string();
+                    return (game_name, app_id);
                 }
                 game_name = format!("Game (AppID {})", folder_name);
             } else if !folder_name.is_empty() {

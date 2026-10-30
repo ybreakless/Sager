@@ -27,6 +27,20 @@ pub struct SagerConfig {
     pub google_drive_exe: Option<PathBuf>,
     #[serde(default = "default_backups_per_day")]
     pub backups_per_day: Option<u32>,
+    #[serde(default = "default_preferred_launcher")]
+    pub preferred_launcher: String,
+    #[serde(default = "default_true")]
+    pub show_in_launcher: bool,
+    #[serde(default = "default_true")]
+    pub tray_compact_mode: bool,
+}
+
+fn default_preferred_launcher() -> String {
+    "Goldberg SteamEmu".to_string()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_backups_per_day() -> Option<u32> {
@@ -79,6 +93,9 @@ impl Default for SagerConfig {
             web_port: 3939,
             google_drive_exe: gdrive_exe,
             backups_per_day: Some(24),
+            preferred_launcher: "Goldberg SteamEmu".to_string(),
+            show_in_launcher: true,
+            tray_compact_mode: true,
         }
     }
 }
