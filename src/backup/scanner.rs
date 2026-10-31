@@ -119,7 +119,31 @@ impl SaveScanner {
             }
         }
 
-        // 5. Steam Userdata Cloud Saves
+        // 5. Ubisoft Game Launcher savegames (Program Files) — used by AC Black Flag and legacy Ubisoft titles
+        for pf_var in ["ProgramFiles(x86)", "ProgramFiles"] {
+            if let Ok(pf) = env::var(pf_var) {
+                let uplay_saves = PathBuf::from(pf)
+                    .join("Ubisoft")
+                    .join("Ubisoft Game Launcher")
+                    .join("savegames");
+                if uplay_saves.exists() {
+                    let (size, count, mtime) = calculate_dir_stats(&uplay_saves);
+                    if count > 0 {
+                        results.push(DiscoveredGame {
+                            name: "Assassin's Creed IV: Black Flag (Ubisoft Launcher saves)".to_string(),
+                            source_path: uplay_saves,
+                            save_category: "Ubisoft".to_string(),
+                            total_size_bytes: size,
+                            files_count: count,
+                            last_modified: mtime,
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 6. Steam Userdata Cloud Saves
         if let Some(steam_path) = &config.steam_path {
             let userdata = steam_path.join("userdata");
             if userdata.exists() {
@@ -368,6 +392,22 @@ impl SaveScanner {
             results.push(DiscoveredGame {
                 name: "Assassin's Creed IV: Black Flag".to_string(),
                 source_path: ac4_local,
+                save_category: "Ubisoft".to_string(),
+                total_size_bytes: size,
+                files_count: count,
+                last_modified: mtime,
+            });
+        }
+
+        // Assassin's Creed Black Flag Resynced / 2026 client data folder
+        let ac4_resynced = local_dir
+            .join("Ubisoft")
+            .join("Assassin's Creed Black Flag Resynced");
+        if ac4_resynced.exists() {
+            let (size, count, mtime) = calculate_dir_stats(&ac4_resynced);
+            results.push(DiscoveredGame {
+                name: "Assassin's Creed Black Flag Resynced".to_string(),
+                source_path: ac4_resynced,
                 save_category: "Ubisoft".to_string(),
                 total_size_bytes: size,
                 files_count: count,
