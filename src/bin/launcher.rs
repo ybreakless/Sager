@@ -530,6 +530,18 @@ fn main() {
         return;
     }
 
+    // Fully automatic first-run experience: install, configure startup, and launch.
+    let force_ui = args.iter().any(|a| a == "--ui" || a == "--setup");
+    if !is_installed() && !force_ui {
+        match install_sager() {
+            Ok(_) => {
+                let _ = launch_sager();
+                return;
+            }
+            Err(e) => eprintln!("Automatic install failed: {}. Opening setup window...", e),
+        }
+    }
+
     unsafe {
         let hinstance = GetModuleHandleW(null_mut());
 

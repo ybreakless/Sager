@@ -42,6 +42,7 @@ pub fn get_dashboard_html() -> &'static str {
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            font-size: clamp(13px, 1vw, 16px);
         }
 
         /* ── Top Header / ProtonVPN Companion Bar ── */
@@ -113,33 +114,6 @@ pub fn get_dashboard_html() -> &'static str {
             gap: 10px;
         }
 
-        /* ── View Mode Switcher (ProtonVPN Tray vs Studio) ── */
-        .view-switcher {
-            background-color: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 2px;
-            display: flex;
-        }
-
-        .view-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 5px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .view-btn.active {
-            background: linear-gradient(135deg, #2563eb, #38bdf8);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-        }
-
         /* ── Navigation Tabs ── */
         .nav-tabs {
             display: flex;
@@ -178,21 +152,25 @@ pub fn get_dashboard_html() -> &'static str {
         /* ── Main Container ── */
         main {
             flex: 1;
-            padding: 20px;
-            max-width: 1280px;
+            padding: clamp(12px, 2vw, 28px);
+            max-width: min(100%, 1440px);
             margin: 0 auto;
             width: 100%;
             transition: all 0.3s ease;
         }
 
-        /* ProtonVPN Compact Tray View Container */
-        body.mode-tray main {
-            max-width: 480px;
-            padding: 16px 12px;
+        @media (max-width: 720px) {
+            header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+            .header-controls { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+            .nav-tabs { padding: 0 12px; }
+            .hero-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .hero-backup-btn { font-size: 13px; padding: 12px 14px; }
+            .cloud-sync-strip { flex-direction: column; align-items: flex-start; }
+            .ach-matrix-grid { grid-template-columns: 1fr; }
         }
 
-        body.mode-tray .hide-in-tray {
-            display: none !important;
+        @media (min-width: 1440px) {
+            main { max-width: 1360px; }
         }
 
         /* ── ProtonVPN Hero Shield Card ── */
@@ -517,10 +495,6 @@ pub fn get_dashboard_html() -> &'static str {
             gap: 12px;
         }
 
-        body.mode-tray .ach-matrix-grid {
-            grid-template-columns: 1fr;
-        }
-
         .matrix-card {
             background-color: var(--bg-card);
             border: 1px solid var(--border);
@@ -773,11 +747,11 @@ pub fn get_dashboard_html() -> &'static str {
         }
     </style>
 </head>
-<body class="mode-tray">
+<body>
 
     <!-- Top Header / Bar -->
     <header>
-        <div class="logo-area" onclick="switchViewMode()">
+        <div class="logo-area">
             <img src="/api/logo" alt="Sager" class="logo-img" />
             <div>
                 <div class="logo-title">SAGER</div>
@@ -801,12 +775,6 @@ pub fn get_dashboard_html() -> &'static str {
                 <span>👁️</span>
                 <span>Make Appear</span>
             </button>
-
-            <!-- View Mode Switcher: Tray Companion vs Studio View -->
-            <div class="view-switcher">
-                <button class="view-btn active" id="btn-view-tray" onclick="setViewMode('tray')">📱 Tray</button>
-                <button class="view-btn" id="btn-view-studio" onclick="setViewMode('studio')">🖥️ Studio</button>
-            </div>
         </div>
     </header>
 
@@ -1313,25 +1281,6 @@ pub fn get_dashboard_html() -> &'static str {
         let allAchievementSummaries = [];
         let selectedGameIndex = 0;
         let activeMatrixFilter = 'all';
-
-        // ── View Mode: ProtonVPN Compact Tray vs Studio Mode ──
-        function setViewMode(mode) {
-            if (mode === 'tray') {
-                document.body.classList.add('mode-tray');
-                document.getElementById('btn-view-tray').classList.add('active');
-                document.getElementById('btn-view-studio').classList.remove('active');
-            } else {
-                document.body.classList.remove('mode-tray');
-                document.getElementById('btn-view-studio').classList.add('active');
-                document.getElementById('btn-view-tray').classList.remove('active');
-            }
-            localStorage.setItem('sager_view_mode', mode);
-        }
-
-        function switchViewMode() {
-            const isTray = document.body.classList.contains('mode-tray');
-            setViewMode(isTray ? 'studio' : 'tray');
-        }
 
         // ── Tab Navigation ──
         function switchTab(tabId) {
@@ -2116,9 +2065,6 @@ pub fn get_dashboard_html() -> &'static str {
 
         // ── Initialization ──
         window.addEventListener('DOMContentLoaded', () => {
-            const savedMode = localStorage.getItem('sager_view_mode') || 'tray';
-            setViewMode(savedMode);
-
             loadConfig();
             loadDriveStatus();
             loadGames();
