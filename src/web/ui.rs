@@ -8,23 +8,23 @@ pub fn get_dashboard_html() -> &'static str {
     <link rel="icon" type="image/png" href="/api/logo">
     <style>
         :root {
-            --bg-base: #070a12;
-            --bg-surface: #0e1424;
-            --bg-card: #141c30;
-            --bg-card-hover: #1b2640;
-            --bg-input: #090e1a;
-            --border: #23304c;
-            --border-highlight: #3b82f6;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.25);
-            --gold: #fbbf24;
-            --gold-glow: rgba(251, 191, 36, 0.25);
-            --success: #10b981;
-            --success-glow: rgba(16, 185, 129, 0.25);
-            --danger: #ef4444;
-            --purple: #a855f7;
+            --bg-base: #000;
+            --bg-surface: #000;
+            --bg-card: #111;
+            --bg-card-hover: #222;
+            --bg-input: #000;
+            --border: #333;
+            --border-highlight: #555;
+            --text-main: #fff;
+            --text-muted: #bbb;
+            --primary: #fff;
+            --primary-glow: rgba(255,255,255,0.2);
+            --gold: #fff;
+            --gold-glow: rgba(255,255,255,0.2);
+            --success: #fff;
+            --success-glow: rgba(255,255,255,0.2);
+            --danger: #fff;
+            --purple: #fff;
         }
 
         * {
@@ -75,7 +75,7 @@ pub fn get_dashboard_html() -> &'static str {
             font-size: 20px;
             font-weight: 800;
             letter-spacing: 1.2px;
-            background: linear-gradient(90deg, #38bdf8, #818cf8, #fbbf24);
+            background: #38bdf8;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -197,7 +197,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         /* ── ProtonVPN Hero Shield Card ── */
         .hero-shield-card {
-            background: linear-gradient(145deg, #101828 0%, #152238 100%);
+            background: #111;
             border: 1px solid #293a5a;
             border-radius: 14px;
             padding: 20px;
@@ -251,7 +251,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         .hero-backup-btn {
             width: 100%;
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
+            background: #0284c7;
             color: white;
             border: none;
             border-radius: 10px;
@@ -271,7 +271,7 @@ pub fn get_dashboard_html() -> &'static str {
         .hero-backup-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5);
-            background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 50%, #4338ca 100%);
+            background: #0369a1;
         }
 
         .hero-backup-btn:active {
@@ -346,7 +346,7 @@ pub fn get_dashboard_html() -> &'static str {
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #1e293b;
+            background-color: #333;
             border: 1px solid var(--border);
             transition: .3s;
             border-radius: 24px;
@@ -359,13 +359,13 @@ pub fn get_dashboard_html() -> &'static str {
             width: 16px;
             left: 3px;
             bottom: 3px;
-            background-color: #94a3b8;
+            background-color: #666;
             transition: .3s;
             border-radius: 50%;
         }
 
         input:checked + .slider {
-            background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+            background: #0ea5e9;
             border-color: #38bdf8;
         }
 
@@ -455,7 +455,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         /* ── Achievement Matrix & Overall Progress ── */
         .ach-overview-banner {
-            background: linear-gradient(135deg, #182238 0%, #1c2b48 100%);
+            background: #182238;
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 18px 20px;
@@ -474,7 +474,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         .ach-progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #10b981 100%);
+            background: #f59e0b;
             box-shadow: 0 0 12px var(--gold-glow);
             transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -504,7 +504,7 @@ pub fn get_dashboard_html() -> &'static str {
         }
 
         .filter-pill.active {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2));
+            background: #555;
             color: var(--primary);
             border-color: var(--primary);
             box-shadow: 0 0 10px var(--primary-glow);
@@ -535,7 +535,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         .matrix-card.unlocked {
             border-color: rgba(251, 191, 36, 0.4);
-            background: linear-gradient(145deg, #152033 0%, #1b263b 100%);
+            background: #152033;
         }
 
         .matrix-card.unlocked::before {
@@ -545,7 +545,7 @@ pub fn get_dashboard_html() -> &'static str {
             top: 0;
             bottom: 0;
             width: 4px;
-            background: linear-gradient(180deg, var(--gold) 0%, #10b981 100%);
+            background: #fbbf24;
         }
 
         .matrix-card.locked {
@@ -629,7 +629,7 @@ pub fn get_dashboard_html() -> &'static str {
 
         /* ── Buttons & Forms ── */
         .btn {
-            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            background: #0ea5e9;
             color: white;
             border: none;
             border-radius: 8px;
@@ -644,7 +644,7 @@ pub fn get_dashboard_html() -> &'static str {
         }
 
         .btn:hover {
-            background: linear-gradient(135deg, #38bdf8, #1d4ed8);
+            background: #38bdf8;
             transform: translateY(-1px);
         }
 
@@ -655,34 +655,34 @@ pub fn get_dashboard_html() -> &'static str {
         }
 
         .btn-gold {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+            background: #f59e0b;
             color: #1c1300;
             font-weight: 700;
         }
 
         .btn-gold:hover {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: #fbbf24;
         }
 
         .btn-bg-action {
-            background: linear-gradient(135deg, #059669, #10b981);
+            background: #10b981;
             color: #fff;
             font-weight: 700;
         }
 
         .btn-bg-action:hover {
-            background: linear-gradient(135deg, #10b981, #34d399);
+            background: #10b981;
             box-shadow: 0 0 12px var(--success-glow);
         }
 
         .btn-appear-action {
-            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            background: #6366f1;
             color: #fff;
             font-weight: 700;
         }
 
         .btn-appear-action:hover {
-            background: linear-gradient(135deg, #6366f1, #818cf8);
+            background: #818cf8;
             box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
         }
 
@@ -946,7 +946,7 @@ pub fn get_dashboard_html() -> &'static str {
             </div>
 
             <!-- 🕶️ Background Execution & Windows Visibility Controls -->
-            <div class="switchboard-card" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(145deg, #10192e 0%, #15223c 100%);">
+            <div class="switchboard-card" style="border-color: rgba(56, 189, 248, 0.4); background: #15223c;">
                 <div class="card-header-sm">
                     <span style="color: var(--primary);">🕶️ Background Execution & Window Controls</span>
                     <span id="console-live-badge" class="cloud-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary);">Tray Active</span>
@@ -958,7 +958,7 @@ pub fn get_dashboard_html() -> &'static str {
                         <span>Run in Background (Hide Window)</span>
                     </button>
 
-                    <button class="btn" style="flex: 1; min-width: 170px; justify-content: center; padding: 10px 14px; background: linear-gradient(135deg, #3b82f6, #6366f1);" onclick="makeConsoleAppear()">
+                    <button class="btn" style="flex: 1; min-width: 170px; justify-content: center; padding: 10px 14px; background: #3b82f6;" onclick="makeConsoleAppear()">
                         <span>👁️</span>
                         <span>Make Console Appear</span>
                     </button>
@@ -1191,7 +1191,7 @@ pub fn get_dashboard_html() -> &'static str {
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <input type="file" id="vault-import-input" accept=".json,.sager" class="form-input" style="padding: 8px;" />
-                        <button class="btn" onclick="importVaultBundle()" style="width: 100%; justify-content: center; padding: 12px; background: linear-gradient(135deg, #059669, #10b981);">
+                        <button class="btn" onclick="importVaultBundle()" style="width: 100%; justify-content: center; padding: 12px; background: #059669;">
                             <span>📥</span>
                             <span>Import & Merge into Local Vault</span>
                         </button>
@@ -1201,7 +1201,7 @@ pub fn get_dashboard_html() -> &'static str {
             </div>
 
             <!-- Android Companion & Local Home Wi-Fi Sync Card -->
-            <div class="switchboard-card" style="border-color: rgba(99, 102, 241, 0.4); background: linear-gradient(145deg, #0e1526 0%, #171d33 100%);">
+            <div class="switchboard-card" style="border-color: rgba(99, 102, 241, 0.4); background: #0e1526;">
                 <div class="card-header-sm">
                     <span style="color: #818cf8; font-size: 15px; font-weight: 800;">📱 Sager Android Companion & Home Wi-Fi Sync</span>
                     <span id="wifi-status-badge" class="cloud-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">🟢 Ready for LAN Sync</span>
@@ -1237,7 +1237,7 @@ pub fn get_dashboard_html() -> &'static str {
                     <div style="font-size: 12px; color: var(--text-muted);">
                         📦 <strong>Android APK Release:</strong> Standalone package available in the <a href="https://github.com/ybreakless/Sager/releases" target="_blank" style="color: var(--primary); text-decoration: underline;">GitHub Releases</a> section.
                     </div>
-                    <a href="https://github.com/ybreakless/Sager/releases" target="_blank" class="btn btn-sm" style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff;">
+                    <a href="https://github.com/ybreakless/Sager/releases" target="_blank" class="btn btn-sm" style="background: #4f46e5; color: #fff;">
                         🤖 Get Android App (GitHub Release)
                     </a>
                 </div>

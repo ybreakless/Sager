@@ -1,7 +1,7 @@
 # Sager v0.2.0 — Authentic Steam In-Game Overlay, Pocket Android Companion & Vault Portability
 
 <p align="center">
-  <img src="../../assets/logo.png" alt="Sager Logo" width="160">
+  <img src="../../assets/sager-icon.svg" alt="Sager Logo" width="160" height="160">
 </p>
 
 We are thrilled to announce **Sager v0.2.0**! This major release delivers the official Steam achievement notification experience directly over your PC games, introduces the **Sager Android Companion** app with offline trophy showcase and local Home Wi-Fi sync, and adds a full **Vault Export & Import** engine for seamless cross-PC portability.

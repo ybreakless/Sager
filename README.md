@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Sager Logo" width="180">
+  <img src="assets/sager-icon.svg" alt="Sager Logo" width="180" height="180">
 </p>
 <h1 align="center">Sager - Game Companion & Cloud Save Sync</h1>
 <p align="center">

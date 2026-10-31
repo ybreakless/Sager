@@ -60,20 +60,11 @@ impl WebServer {
                     continue;
                 }
 
-                if url == "/api/logo" && method == Method::Get {
-                    let logo_bytes: &[u8] = include_bytes!("../../assets/icon.png");
-                    let png_header =
-                        Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..]).unwrap();
-                    let resp = Response::from_data(logo_bytes).with_header(png_header);
-                    let _ = req.respond(resp);
-                    continue;
-                }
-
-                if url == "/api/logo-full" && method == Method::Get {
-                    let logo_bytes: &[u8] = include_bytes!("../../assets/logo.png");
-                    let png_header =
-                        Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..]).unwrap();
-                    let resp = Response::from_data(logo_bytes).with_header(png_header);
+                if (url == "/api/logo" || url == "/api/logo-full") && method == Method::Get {
+                    let logo_bytes: &[u8] = include_bytes!("../../assets/sager-icon.svg");
+                    let svg_header =
+                        Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]).unwrap();
+                    let resp = Response::from_data(logo_bytes).with_header(svg_header);
                     let _ = req.respond(resp);
                     continue;
                 }
