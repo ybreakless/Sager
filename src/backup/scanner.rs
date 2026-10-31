@@ -87,6 +87,22 @@ impl SaveScanner {
                     });
                 }
             }
+
+            // Assassin's Creed IV: Black Flag roaming saves
+            let ac4_roaming = appdata_path
+                .join("Ubisoft")
+                .join("Assassin's Creed IV Black Flag");
+            if ac4_roaming.exists() {
+                let (size, count, mtime) = calculate_dir_stats(&ac4_roaming);
+                results.push(DiscoveredGame {
+                    name: "Assassin's Creed IV: Black Flag".to_string(),
+                    source_path: ac4_roaming,
+                    save_category: "Roaming AppData".to_string(),
+                    total_size_bytes: size,
+                    files_count: count,
+                    last_modified: mtime,
+                });
+            }
         }
 
         // 4. LocalAppData (Deep Game Save Discovery)
