@@ -74,6 +74,7 @@ Whether you downloaded games from Project Lightning, Goldberg emulators, or nati
   - `Bodycam` (`%LOCALAPPDATA%\Bodycam\Saved\SaveGames`)
   - `The Last of Us Part I` & `Uncharted` (`%USERPROFILE%\Saved Games`)
   - `Assassin's Creed Shadows` (Ubisoft & Goldberg Uplay)
+  - `Assassin's Creed IV: Black Flag` (`Documents` & Ubisoft Game Launcher saves)
   - `Assetto Corsa Competizione` (`%LOCALAPPDATA%\AC2`)
   - `CD Projekt Red` (Witcher / Cyberpunk)
   - Steam Cloud Userdata (`BioShock Infinite`, `Portal 2`, `Resident Evil 6`, `Wallpaper Engine`)

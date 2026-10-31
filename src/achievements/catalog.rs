@@ -449,6 +449,8 @@ pub fn get_known_app_name(app_id: &str) -> Option<&'static str> {
         "1903340" => Some("Clair Obscur: Expedition 33"),
         "731040" => Some("The Invincible"),
         "2478970" => Some("Bodycam"),
+        "242050" => Some("Assassin's Creed IV: Black Flag"),
+        "273" => Some("Assassin's Creed IV: Black Flag"),
         _ => None,
     }
 }

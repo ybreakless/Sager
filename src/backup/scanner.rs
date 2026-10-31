@@ -31,6 +31,24 @@ impl SaveScanner {
             let my_games_dir = docs.join("My Games");
             Self::scan_folder(&my_games_dir, "Documents/My Games", &mut results);
             Self::scan_folder(&docs, "Documents", &mut results);
+
+            // Explicit Assassin's Creed IV: Black Flag document saves
+            for ac4_folder in [
+                docs.join("Assassin's Creed IV Black Flag"),
+                docs.join("Ubisoft").join("Assassin's Creed IV Black Flag"),
+            ] {
+                if ac4_folder.exists() {
+                    let (size, count, mtime) = calculate_dir_stats(&ac4_folder);
+                    results.push(DiscoveredGame {
+                        name: "Assassin's Creed IV: Black Flag".to_string(),
+                        source_path: ac4_folder,
+                        save_category: "Documents".to_string(),
+                        total_size_bytes: size,
+                        files_count: count,
+                        last_modified: mtime,
+                    });
+                }
+            }
         }
 
         // 3. AppData / Roaming
@@ -300,6 +318,40 @@ impl SaveScanner {
             results.push(DiscoveredGame {
                 name: "Assassin's Creed Shadows".to_string(),
                 source_path: acs,
+                save_category: "Ubisoft".to_string(),
+                total_size_bytes: size,
+                files_count: count,
+                last_modified: mtime,
+            });
+        }
+
+        // Assassin's Creed IV: Black Flag — native Ubisoft launcher saves
+        let ubisoft_saves = local_dir
+            .join("Ubisoft")
+            .join("Ubisoft Game Launcher")
+            .join("savegames");
+        if ubisoft_saves.exists() {
+            let (size, count, mtime) = calculate_dir_stats(&ubisoft_saves);
+            if count > 0 {
+                results.push(DiscoveredGame {
+                    name: "Assassin's Creed IV: Black Flag (Ubisoft saves)".to_string(),
+                    source_path: ubisoft_saves,
+                    save_category: "Ubisoft".to_string(),
+                    total_size_bytes: size,
+                    files_count: count,
+                    last_modified: mtime,
+                });
+            }
+        }
+
+        let ac4_local = local_dir
+            .join("Ubisoft")
+            .join("Assassin's Creed IV Black Flag");
+        if ac4_local.exists() {
+            let (size, count, mtime) = calculate_dir_stats(&ac4_local);
+            results.push(DiscoveredGame {
+                name: "Assassin's Creed IV: Black Flag".to_string(),
+                source_path: ac4_local,
                 save_category: "Ubisoft".to_string(),
                 total_size_bytes: size,
                 files_count: count,
